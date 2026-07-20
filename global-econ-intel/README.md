@@ -9,24 +9,37 @@ rather than one large generation pass. See `docs/ARCHITECTURE.md` for the
 current system diagram and `docs/ROADMAP.md`-equivalent (the 3-Day Sprint
 plan) for what's built vs. what's next.
 
-## Current status: Day 1, Step 1 — Architecture scaffold
+## Current status: Day 1, Step 4 — API connectors
 
-What exists right now:
-- `docker-compose.yml` wiring every planned container together
-- Folder structure for every layer of the system
-- Environment variable template (`.env.example`)
-- Placeholder Dockerfiles/entrypoints for services with no logic yet
-  (backend, frontend, mlflow, spark)
+Completed so far:
+- **Step 1**: `docker-compose.yml`, folder structure, `.env.example`,
+  placeholder Dockerfiles for services with no logic yet
+- **Step 4**: `pipelines/connectors/` — one connector per source
+  (World Bank, Open-Meteo, ExchangeRate, CoinGecko, NewsAPI), each with
+  retries (exponential backoff), structured JSON logging, Pydantic
+  response validation, and pagination where the source supports it.
+  14 passing unit tests in `tests/test_connectors/` (network calls
+  mocked — see "Running tests" below).
 
-What does **not** exist yet (intentionally — these are separate milestones):
-- API connectors (World Bank, Open-Meteo, ExchangeRate, CoinGecko, NewsAPI)
-- Airflow ingestion DAGs
-- PySpark ETL jobs
-- Great Expectations validation suites
-- DuckDB star schema
-- ML pipelines / FastAPI domain endpoints
-- React application UI
-- Superset dashboards
+What does **not** exist yet (intentionally — separate milestones):
+- Airflow ingestion DAGs that actually call these connectors and write
+  to MinIO's Bronze bucket (Step 5)
+- PySpark ETL jobs (Step 8)
+- Great Expectations validation suites (Step 9)
+- DuckDB star schema (Step 10)
+- ML pipelines / FastAPI domain endpoints (Day 2)
+- React application UI (Day 3)
+- Superset dashboards (Day 3)
+
+## Running the connector tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/test_connectors/ -v
+```
+
+All 14 tests run offline against mocked HTTP responses, so no API keys
+or network access are needed to verify connector logic.
 
 ## Getting started
 
@@ -57,8 +70,19 @@ Then verify:
 - [ ] MinIO console shows `bronze`, `silver`, `gold` buckets already created
 - [ ] `GET http://localhost:8000/health` returns `{"status": "ok", ...}`
 
-Once all of the above are true, this milestone is done — commit it, then
-move to Day 1, Step 4 (API connectors) as its own prompt.
+Once all of the above are true, this milestone is done.
+
+### Acceptance criteria for Step 4 (connectors)
+
+- [ ] `pytest tests/test_connectors/ -v` passes (14/14)
+- [ ] Each connector raises `ConnectorRequestError` (not a raw `requests`
+      exception) after exhausting retries
+- [ ] Each connector raises `ConnectorValidationError` on malformed data
+- [ ] `NewsAPIConnector` fails fast with a clear error when `NEWSAPI_KEY`
+      is unset, without making a network call
+
+Next milestone: Day 1, Step 5 — Airflow DAGs that call
+`CONNECTOR_REGISTRY` and write raw JSON to MinIO's Bronze bucket.
 
 ## Repository layout
 
@@ -70,7 +94,8 @@ spark/         PySpark ETL jobs, custom Spark image
 warehouse/     DuckDB file + star schema DDL
 data/          Local mirror of bronze/silver/gold (MinIO is source of truth)
 models/        Trained model artifacts (MLflow registry is source of truth)
-pipelines/     Shared connector + transformation code, importable by Airflow
+pipelines/     connectors/ (World Bank, Open-Meteo, ExchangeRate, CoinGecko,
+               NewsAPI) + shared transformation code, importable by Airflow
 config/        Shared Pydantic settings used across services
 tests/         Cross-service integration tests
 docs/          Architecture and planning docs
