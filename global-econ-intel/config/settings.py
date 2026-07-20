@@ -21,5 +21,7 @@ class SharedSettings(BaseSettings):
 
     duckdb_path: str = "/opt/warehouse/warehouse.duckdb"
 
+    newsapi_key: str = ""
+
 
 shared_settings = SharedSettings()
