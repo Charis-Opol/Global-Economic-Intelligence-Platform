@@ -1,4 +1,4 @@
-FROM bitnami/spark:3.5
+FROM apache/spark:3.5.3
 
 USER root
 # jobs/ will hold the PySpark ETL scripts written in Day 1, Step 8
