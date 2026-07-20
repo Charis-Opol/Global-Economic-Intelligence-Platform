@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+*.duckdb
+data/bronze/*
+data/silver/*
+data/gold/*
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
+airflow/logs/*
+!airflow/logs/.gitkeep
