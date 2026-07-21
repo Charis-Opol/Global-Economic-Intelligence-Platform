@@ -1,0 +1,8 @@
+slice_name: GDP by Country and Year
+viz_type: table
+params: '{"datasource": "b0d729c8-7b91-4408-81d1-fe73259da710__table", "viz_type": "table", "query_mode": "raw", "columns": ["country_iso3", "country_name", "year", "gdp_usd", "gdp_growth_rate"], "order_by_cols": ["[\"year\", true]"], "row_limit": 1000, "server_page_length": 10}'
+query_context: null
+cache_timeout: null
+uuid: ea29103b-dc91-4e1a-b6e5-ae4a19ffaeda
+version: 1.0.0
+dataset_uuid: b0d729c8-7b91-4408-81d1-fe73259da710

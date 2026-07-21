@@ -15,17 +15,39 @@ x-airflow-common: &airflow-common
     MINIO_ENDPOINT: ${MINIO_ENDPOINT}
     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    MLFLOW_TRACKING_URI: http://mlflow:5000
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
     - ./airflow/logs:/opt/airflow/logs
     - ./pipelines:/opt/airflow/pipelines
     - ./config:/opt/airflow/config
+    - ./warehouse:/opt/warehouse
   depends_on:
     postgres:
       condition: service_healthy
     redis:
       condition: service_healthy
+    mlflow:
+      condition: service_started
+
+x-superset-common: &superset-common
+  build:
+    context: ./superset
+  environment:
+    SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+    DATABASE_DIALECT: postgresql
+    DATABASE_HOST: postgres
+    DATABASE_DB: superset
+    DATABASE_USER: ${POSTGRES_USER}
+    DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+    SUPERSET_GUEST_TOKEN_JWT_SECRET: ${SUPERSET_GUEST_TOKEN_JWT_SECRET}
+    SUPERSET_ALLOWED_ORIGIN: ${FRONTEND_ORIGIN}
+  volumes:
+    # Read-only: Superset only ever queries the warehouse, never writes it.
+    - ./warehouse:/opt/warehouse:ro
+    # For `superset import-assets --path /app/dashboards` - see superset/dashboards/README.md.
+    - ./superset/dashboards:/app/dashboards:ro
 
 services:
 
@@ -160,36 +182,58 @@ services:
         condition: service_healthy
 
   # ---------- BI dashboards ----------
+  superset-init:
+    <<: *superset-common
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - "superset db upgrade && superset fab create-admin --username ${SUPERSET_ADMIN_USER} --password ${SUPERSET_ADMIN_PASSWORD} --firstname Admin --lastname User --email admin@example.com || true; superset init"
+
   superset:
-    image: apache/superset:latest
-    environment:
-      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
-      DATABASE_DIALECT: postgresql
-      DATABASE_HOST: postgres
-      DATABASE_DB: superset
-      DATABASE_USER: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+    <<: *superset-common
     ports:
       - "8088:8088"
     depends_on:
       postgres:
         condition: service_healthy
+      superset-init:
+        condition: service_completed_successfully
 
-  # ---------- Application layer (placeholders until Day 2 / Day 3) ----------
+  # ---------- Application layer (backend built out Day 2; frontend UI is Day 3) ----------
   backend:
     build:
       context: ./backend
     environment:
       DUCKDB_PATH: /opt/warehouse/warehouse.duckdb
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      AIRFLOW_BASE_URL: http://airflow-webserver:8080
+      AIRFLOW_ADMIN_USER: ${AIRFLOW_ADMIN_USER}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      AUTH_ADMIN_USERNAME: ${AUTH_ADMIN_USERNAME}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD}
+      SUPERSET_BASE_URL: http://superset:8088
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_ORIGIN}
     ports:
       - "8000:8000"
     volumes:
       - ./warehouse:/opt/warehouse
+    depends_on:
+      mlflow:
+        condition: service_started
+      superset:
+        condition: service_started
 
   frontend:
     build:
       context: ./frontend
+      target: dev
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+      VITE_SUPERSET_DOMAIN: http://localhost:8088
     ports:
       - "5173:5173"
     depends_on:

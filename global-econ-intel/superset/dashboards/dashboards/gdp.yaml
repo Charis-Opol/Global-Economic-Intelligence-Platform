@@ -1,0 +1,44 @@
+# uuid below MUST match backend/app/superset_client.py's DASHBOARD_UUIDS["gdp"]
+# and frontend/src/components/superset/dashboard-ids.ts - all three need to
+# agree on which dashboard "gdp" refers to.
+dashboard_title: GDP
+description: null
+css: null
+slug: gdp
+uuid: fdbf5d8b-5077-4ba7-8421-3f0be46f14d8
+position_json:
+  DASHBOARD_VERSION_KEY: v2
+  ROOT_ID:
+    type: ROOT
+    id: ROOT_ID
+    children: [GRID_ID]
+  GRID_ID:
+    type: GRID
+    id: GRID_ID
+    children: [ROW-1]
+    parents: [ROOT_ID]
+  ROW-1:
+    type: ROW
+    id: ROW-1
+    children: [CHART-1]
+    parents: [ROOT_ID, GRID_ID]
+    meta: { background: BACKGROUND_TRANSPARENT }
+  CHART-1:
+    type: CHART
+    id: CHART-1
+    children: []
+    parents: [ROOT_ID, GRID_ID, ROW-1]
+    meta:
+      uuid: ea29103b-dc91-4e1a-b6e5-ae4a19ffaeda
+      width: 12
+      height: 50
+      sliceName: GDP by Country and Year
+metadata:
+  color_scheme: ""
+  refresh_frequency: 0
+  timed_refresh_immune_slices: []
+  expanded_slices: {}
+  label_colors: {}
+  shared_label_colors: {}
+  cross_filters_enabled: true
+version: 1.0.0

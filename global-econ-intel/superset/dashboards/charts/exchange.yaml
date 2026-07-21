@@ -1,0 +1,8 @@
+slice_name: Exchange Rates by Day
+viz_type: table
+params: '{"datasource": "6d9eb396-70bd-4f4a-8e71-49f7968568a2__table", "viz_type": "table", "query_mode": "raw", "columns": ["date", "base_code", "currency", "rate", "rate_7d_avg"], "order_by_cols": ["[\"date\", true]"], "row_limit": 1000, "server_page_length": 10}'
+query_context: null
+cache_timeout: null
+uuid: 67dd47d5-398f-43c7-9bee-065a3c50b49e
+version: 1.0.0
+dataset_uuid: 6d9eb396-70bd-4f4a-8e71-49f7968568a2

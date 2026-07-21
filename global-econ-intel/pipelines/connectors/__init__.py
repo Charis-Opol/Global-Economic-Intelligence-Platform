@@ -10,10 +10,11 @@ from pipelines.connectors.coingecko import CoinGeckoConnector
 from pipelines.connectors.exchange_rate import ExchangeRateConnector
 from pipelines.connectors.newsapi import NewsAPIConnector
 from pipelines.connectors.open_meteo import OpenMeteoConnector
-from pipelines.connectors.world_bank import WorldBankConnector
+from pipelines.connectors.world_bank import WorldBankConnector, WorldBankInflationConnector
 
 CONNECTOR_REGISTRY: dict[str, type[BaseConnector]] = {
     "world_bank": WorldBankConnector,
+    "world_bank_inflation": WorldBankInflationConnector,
     "open_meteo": OpenMeteoConnector,
     "exchange_rate": ExchangeRateConnector,
     "coingecko": CoinGeckoConnector,
@@ -24,6 +25,7 @@ __all__ = [
     "CONNECTOR_REGISTRY",
     "BaseConnector",
     "WorldBankConnector",
+    "WorldBankInflationConnector",
     "OpenMeteoConnector",
     "ExchangeRateConnector",
     "CoinGeckoConnector",

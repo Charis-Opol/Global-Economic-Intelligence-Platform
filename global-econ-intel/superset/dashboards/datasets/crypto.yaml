@@ -1,0 +1,58 @@
+table_name: view_crypto
+schema: main
+catalog: null
+sql: null
+main_dttm_col: date
+description: Daily CoinGecko prices with 24h change and trailing 7-day volatility.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+is_managed_externally: false
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: ee2641a3-b6b8-42b6-884e-e058561bf8ee
+metrics:
+  - metric_name: avg_price_usd
+    verbose_name: Average Price (USD)
+    metric_type: null
+    expression: AVG(price_usd)
+    description: null
+    d3format: null
+    currency: null
+    extra: "{}"
+    warning_text: null
+columns:
+  - column_name: date
+    type: DATE
+    is_dttm: true
+    groupby: true
+    filterable: true
+    extra: "{}"
+  - column_name: coin_id
+    type: VARCHAR
+    is_dttm: false
+    groupby: true
+    filterable: true
+    extra: "{}"
+  - column_name: symbol
+    type: VARCHAR
+    is_dttm: false
+    groupby: true
+    filterable: true
+    extra: "{}"
+  - column_name: price_usd
+    type: DOUBLE
+    is_dttm: false
+    groupby: false
+    filterable: true
+    extra: "{}"
+  - column_name: volatility_7d
+    type: DOUBLE
+    is_dttm: false
+    groupby: false
+    filterable: true
+    extra: "{}"
+database_uuid: 9c6d5fae-ae4e-46b7-9c4f-3f13515f6217

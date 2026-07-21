@@ -23,5 +23,7 @@ class SharedSettings(BaseSettings):
 
     newsapi_key: str = ""
 
+    mlflow_tracking_uri: str = "http://mlflow:5000"
+
 
 shared_settings = SharedSettings()
