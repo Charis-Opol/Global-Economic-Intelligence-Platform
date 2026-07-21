@@ -9,24 +9,26 @@ rather than one large generation pass. See `docs/ARCHITECTURE.md` for the
 current system diagram and `docs/ROADMAP.md`-equivalent (the 3-Day Sprint
 plan) for what's built vs. what's next.
 
-## Current status: Day 1, Step 5 — Airflow ingestion DAGs
+## Current status: Day 1, Step 8 — PySpark ETL (Bronze → Silver)
 
 Completed so far:
 - **Step 1**: `docker-compose.yml`, folder structure, `.env.example`,
   placeholder Dockerfiles for services with no logic yet
 - **Step 4**: `pipelines/connectors/` — five source connectors with
   retries, structured logging, validation, and pagination
-- **Step 5**: `airflow/dags/` — one DAG per source
-  (`ingest_world_bank`, `ingest_open_meteo`, `ingest_exchange_rate`,
-  `ingest_coingecko`, `ingest_newsapi`), each fetching through its
-  connector and writing raw JSON to the Bronze bucket via
-  `pipelines/storage/minio_client.py`. Writes are idempotent — reruns
-  for the same day overwrite the same object key instead of
-  duplicating data. 19 passing unit tests total (5 new, covering the
-  storage layer and ingestion orchestration).
+- **Step 5**: `airflow/dags/` — one ingestion DAG per source, writing
+  idempotently to the Bronze bucket
+- **Step 8**: `spark/jobs/` — one ETL job per source
+  (`etl_world_bank.py`, `etl_open_meteo.py`, `etl_exchange_rate.py`,
+  `etl_coingecko.py`, `etl_newsapi.py`), each reading Bronze JSON,
+  cleaning, normalizing nested/array/map structures into flat rows,
+  merging (deduping) across overlapping ingestion runs, engineering one
+  feature per source (GDP YoY growth, rainfall anomaly, exchange
+  momentum, 7-day crypto volatility, daily article volume), and writing
+  partitioned Silver Parquet. 16 new tests run against a **real local
+  Spark session** (not mocked) — 35 tests total, all passing.
 
 What does **not** exist yet (intentionally — separate milestones):
-- PySpark ETL jobs reading Bronze → Silver (Step 8)
 - Great Expectations validation suites (Step 9)
 - DuckDB star schema (Step 10)
 - ML pipelines / FastAPI domain endpoints (Day 2)
@@ -40,9 +42,11 @@ pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-All 19 tests run offline — connectors mock HTTP, and the ingestion/storage
-tests mock boto3 — so no live API keys, MinIO, or Airflow install are
-needed to verify the logic itself.
+All 35 tests run offline. Connectors mock HTTP, ingestion/storage tests
+mock boto3, and the Spark transform tests spin up a real local (JVM)
+Spark session with small in-memory datasets — no live API keys, MinIO,
+or a running Airflow/Spark cluster required to verify the logic itself.
+Requires a JDK (11+) on your machine for the Spark tests to run.
 
 ## Getting started
 
@@ -95,10 +99,23 @@ Once all of the above are true, this milestone is done.
 - [ ] Triggering the same DAG a second time for the same day overwrites
       that object rather than creating a second one
 
-Next milestone: Day 1, Step 8 — PySpark ETL reading Bronze → cleaning,
-normalizing, merging, feature engineering → writing Silver Parquet.
-(Step 6/7 — bucket creation and "store raw JSON, test" — are already
-satisfied by `createbuckets` in `docker-compose.yml` and Step 5 above.)
+### Acceptance criteria for Step 8 (PySpark ETL)
+
+- [ ] `pytest tests/test_spark/ -v` passes (16/16) using a real local
+      Spark session
+- [ ] Each transform drops genuinely invalid rows (missing country code,
+      zero/negative exchange rate, missing article title/URL) while
+      keeping legitimately-null business values (e.g. unreported GDP)
+- [ ] Rerunning ingestion for a day that overlaps a previous run
+      (verified for World Bank revisions, Open-Meteo's rolling window,
+      CoinGecko, and NewsAPI) produces one row per natural key, not a
+      duplicate
+- [ ] Inside the Spark container: `spark-submit /opt/spark-jobs/etl_exchange_rate.py --bronze-path s3a://bronze/exchange_rate/*/exchange_rate.json --silver-path s3a://silver/exchange_rate`
+      completes and Parquet files appear under `silver/exchange_rate/` in MinIO
+
+Next milestone: Day 1, Step 9 — Great Expectations validation suites
+(nulls, duplicates, ranges, schema) run against the Silver layer these
+jobs produce.
 
 ## Repository layout
 
@@ -106,7 +123,9 @@ satisfied by `createbuckets` in `docker-compose.yml` and Step 5 above.)
 backend/       FastAPI service (domain endpoints added Day 2)
 frontend/      React app (full UI added Day 3)
 airflow/       DAGs (one per source), plugins, custom Airflow image
-spark/         PySpark ETL jobs, custom Spark image
+spark/         jobs/ (one ETL entrypoint per source, transforms/ holding
+               the pure clean/normalize/merge/feature-engineer logic),
+               custom Spark image
 warehouse/     DuckDB file + star schema DDL
 data/          Local mirror of bronze/silver/gold (MinIO is source of truth)
 models/        Trained model artifacts (MLflow registry is source of truth)
