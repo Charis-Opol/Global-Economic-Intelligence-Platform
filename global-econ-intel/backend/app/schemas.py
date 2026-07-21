@@ -124,3 +124,9 @@ class PipelineStatusEntry(BaseModel):
     execution_date: str | None = None
     start_date: str | None = None
     end_date: str | None = None
+
+
+class ServiceHealthEntry(BaseModel):
+    service: str
+    healthy: bool
+    detail: str | None = None

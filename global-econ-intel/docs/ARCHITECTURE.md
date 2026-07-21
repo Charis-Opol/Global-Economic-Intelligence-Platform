@@ -199,6 +199,73 @@ Airflow's metadata database directly.
 `/health`, which stay open so login and container healthchecks don't need a
 token already in hand.
 
+## React frontend (Day 3, Steps 1-4, 6-8)
+
+`frontend/` is a Vite + React 19 + TypeScript + Tailwind app, with a small
+set of hand-written shadcn/ui-style primitives (`src/components/ui/`) rather
+than a runtime dependency on shadcn's own package - shadcn ships source you
+copy in, not a library you import, so "using shadcn" always means owning
+these files.
+
+- **`src/lib/api-client.ts`** is the one place that knows the backend's base
+  URL and attaches the bearer token. A 401 from anywhere dispatches a
+  `gei:unauthorized` window event; `AuthProvider` listens for it and clears
+  the session - one response to an expired token, not one per call site.
+- **`src/components/data/data-explorer.tsx`** is one generic paginated,
+  filterable table, configured per domain by six thin page files
+  (`src/pages/data/*.tsx`) - mirrors the backend's own repository pattern
+  (one shared implementation, per-domain configuration) rather than six
+  near-duplicate table components.
+- **Routing is lazy per-page** (`React.lazy` in `App.tsx`) specifically so
+  the Predictions page's chart library (Recharts) and the Dashboards page's
+  Superset SDK don't end up in every other route's JS bundle.
+- **Types are hand-mirrored, not generated** - `src/types/api.ts` matches
+  `backend/app/schemas.py` field-for-field by hand, the same relationship
+  `backend/app/repository.py` has with `pipelines/warehouse/repository.py`:
+  two sides agreeing on a shape without one importing the other.
+
+## Superset embedded dashboards (Day 3, Step 5)
+
+Real embedding, not an iframe pointed at a public Superset URL - Superset's
+[Embedded Dashboards](https://superset.apache.org/docs/embedded-superset)
+feature, which token-gates each embed to one specific dashboard:
+
+1. The frontend's `SupersetEmbed` component asks the backend for a guest
+   token (`GET /superset/guest-token?dashboard=gdp`).
+2. `backend/app/superset_client.py` runs Superset's own three-call flow -
+   admin login → CSRF token → guest token - and returns just the token.
+   The frontend never sees the Superset admin credential.
+3. `@superset-ui/embedded-sdk`'s `embedDashboard()` mounts the dashboard in
+   an iframe, calling back into step 1 whenever the (short-lived) guest
+   token needs refreshing.
+
+`superset/superset_config.py` turns on `EMBEDDED_SUPERSET`, sets a
+dedicated `GUEST_TOKEN_JWT_SECRET` (a different trust boundary than
+`SUPERSET_SECRET_KEY`), and scopes CORS + a `frame-ancestors` CSP exception
+to the frontend's origin specifically - Superset's default security headers
+block being framed by another origin, which is exactly what embedding needs
+to relax, narrowly.
+
+The six example dashboards (GDP, Inflation, Weather, Crypto, Exchange,
+Forecasts) are declarative YAML in `superset/dashboards/` - Superset's own
+export/import format, the same "config as code" pattern this repo already
+uses for Airflow DAGs. **These were authored without a live Superset
+instance to validate against** (see that folder's README for the exact
+caveat and what to check before relying on them). `forecasts.yaml` is
+deliberately a markdown panel, not a chart - there's no warehouse table of
+historical prediction outputs to chart; live forecasts already have a home
+on the app's own Predictions page.
+
+## Monitoring (Day 3, Step 6)
+
+"Container health" is scoped to **service reachability**, not literal
+Docker container introspection - the latter needs the Docker socket mounted
+into a public-facing backend container, a real security cost this doesn't
+justify for a status page. `backend/app/monitoring.py` pings MinIO's,
+MLflow's, and Airflow's own health endpoints with a short timeout; a
+failure is reported as `healthy: false`, never raised, so one flaky
+dependency never breaks the whole page.
+
 ## Explicit non-goals for Day 1, Step 1
 
 - No connector logic (Day 1, Step 4)
@@ -206,6 +273,8 @@ token already in hand.
 - No Spark transformation logic (Day 1, Step 8)
 - No warehouse repository layer, ML pipelines, or FastAPI/auth beyond a
   health check (Day 2)
-- No React UI or Superset dashboards (Day 3)
+- No React UI, Superset dashboards, or Docker/deployment hardening (Day 3)
+- No actual cloud deployment (Day 4) - `docs/DEPLOYMENT.md` is a guide for
+  that step, not the step itself
 
 This document will be updated as each milestone lands.
