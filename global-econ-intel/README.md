@@ -9,7 +9,7 @@ rather than one large generation pass. See `docs/ARCHITECTURE.md` for the
 current system diagram and `docs/ROADMAP.md`-equivalent (the 3-Day Sprint
 plan) for what's built vs. what's next.
 
-## Current status: Day 1, Step 8 — PySpark ETL (Bronze → Silver)
+## Current status: Day 1, Step 9 — Great Expectations validation
 
 Completed so far:
 - **Step 1**: `docker-compose.yml`, folder structure, `.env.example`,
@@ -18,22 +18,26 @@ Completed so far:
   retries, structured logging, validation, and pagination
 - **Step 5**: `airflow/dags/` — one ingestion DAG per source, writing
   idempotently to the Bronze bucket
-- **Step 8**: `spark/jobs/` — one ETL job per source
-  (`etl_world_bank.py`, `etl_open_meteo.py`, `etl_exchange_rate.py`,
-  `etl_coingecko.py`, `etl_newsapi.py`), each reading Bronze JSON,
-  cleaning, normalizing nested/array/map structures into flat rows,
-  merging (deduping) across overlapping ingestion runs, engineering one
-  feature per source (GDP YoY growth, rainfall anomaly, exchange
-  momentum, 7-day crypto volatility, daily article volume), and writing
-  partitioned Silver Parquet. 16 new tests run against a **real local
-  Spark session** (not mocked) — 35 tests total, all passing.
+- **Step 8**: `spark/jobs/` — one ETL job per source: clean, normalize,
+  merge (dedupe), engineer one feature, write partitioned Silver Parquet
+- **Step 9**: `pipelines/validation/` — one Great Expectations suite
+  per Silver dataset, each checking **schema** (expected columns),
+  **nulls** (only on fields that should never be missing — legitimately
+  optional fields like unreported GDP or a missing news byline are left
+  alone), **duplicates** (uniqueness on each dataset's natural key), and
+  **ranges** (e.g. rate > 0, latitude ∈ [-90, 90], year ∈ [1960, 2100]).
+  10 new tests — each suite gets a "valid data passes" case and a
+  "catches every violation type at once" case. 45 tests total, all
+  passing.
 
 What does **not** exist yet (intentionally — separate milestones):
-- Great Expectations validation suites (Step 9)
 - DuckDB star schema (Step 10)
 - ML pipelines / FastAPI domain endpoints (Day 2)
 - React application UI (Day 3)
 - Superset dashboards (Day 3)
+- Wiring `validate_silver.py` into the Airflow DAGs as an automatic gate
+  after each Spark job (a natural next increment, not done yet, so it
+  doesn't get thrown away if Day 2's warehouse layer changes the schema)
 
 ## Running the tests
 
@@ -42,11 +46,11 @@ pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-All 35 tests run offline. Connectors mock HTTP, ingestion/storage tests
-mock boto3, and the Spark transform tests spin up a real local (JVM)
-Spark session with small in-memory datasets — no live API keys, MinIO,
-or a running Airflow/Spark cluster required to verify the logic itself.
-Requires a JDK (11+) on your machine for the Spark tests to run.
+All 45 tests run offline. Connectors mock HTTP, ingestion/storage tests
+mock boto3, Spark transform tests spin up a real local Spark session,
+and Great Expectations tests run against an ephemeral (in-memory)
+context with no persistent GX project needed. Requires a JDK (11+) on
+your machine for the Spark tests.
 
 ## Getting started
 
@@ -113,9 +117,20 @@ Once all of the above are true, this milestone is done.
 - [ ] Inside the Spark container: `spark-submit /opt/spark-jobs/etl_exchange_rate.py --bronze-path s3a://bronze/exchange_rate/*/exchange_rate.json --silver-path s3a://silver/exchange_rate`
       completes and Parquet files appear under `silver/exchange_rate/` in MinIO
 
-Next milestone: Day 1, Step 9 — Great Expectations validation suites
-(nulls, duplicates, ranges, schema) run against the Silver layer these
-jobs produce.
+### Acceptance criteria for Step 9 (Great Expectations)
+
+- [ ] `pytest tests/test_validation/ -v` passes (10/10)
+- [ ] Each suite's "valid data" case reports `success: True`
+- [ ] Each suite's "broken data" case reports `success: False` and the
+      failed-expectations list includes the null/duplicate/range check
+      that specific broken row should trip
+- [ ] `python -m pipelines.validation.validate_silver --source exchange_rate --path <silver parquet path>`
+      runs against a real Silver Parquet file (produced by Step 8) and
+      prints PASSED or FAILED with a non-zero exit code on failure
+
+Next milestone: Day 1, Step 10 — DuckDB star schema (fact + dimension
+tables loaded from the validated Silver layer). That's the last piece
+of Day 1 — "everything automatically populates the warehouse."
 
 ## Repository layout
 
@@ -131,7 +146,8 @@ data/          Local mirror of bronze/silver/gold (MinIO is source of truth)
 models/        Trained model artifacts (MLflow registry is source of truth)
 pipelines/     connectors/ (World Bank, Open-Meteo, ExchangeRate, CoinGecko,
                NewsAPI), storage/ (MinIO Bronze writer), tasks/ (shared
-               ingestion logic imported by DAGs)
+               ingestion logic imported by DAGs), validation/ (Great
+               Expectations suites, one per Silver dataset)
 config/        Shared Pydantic settings used across services
 tests/         Cross-service integration tests
 docs/          Architecture and planning docs
