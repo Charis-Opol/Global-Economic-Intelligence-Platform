@@ -179,7 +179,7 @@ services:
       postgres:
         condition: service_healthy
 
-  # ---------- Application layer (placeholders until Day 2 / Day 3) ----------
+  # ---------- Application layer (backend built out Day 2; frontend UI is Day 3) ----------
   backend:
     build:
       context: ./backend

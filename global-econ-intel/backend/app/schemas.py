@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar("T")
 
@@ -99,6 +99,11 @@ class NewsArticle(BaseModel):
 
 
 class PredictionResponse(BaseModel):
+    # "model_version" is a legitimate field name here, not an accidental
+    # shadow of a BaseModel method - silence pydantic's protected-namespace
+    # warning rather than pick an awkward alternative name.
+    model_config = ConfigDict(protected_namespaces=())
+
     domain: str
     entity: dict[str, str]
     predicted_value: float

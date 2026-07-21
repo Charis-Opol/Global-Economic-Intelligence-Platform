@@ -17,7 +17,11 @@ class _FakeModel:
 
 
 def test_predicts_gdp_from_latest_feature_row(client, monkeypatch):
+    # mlflow's tracking URI is process-global mutable state, so explicitly
+    # stub get_champion_version too - never rely on whatever URI another
+    # test module happened to leave configured.
     monkeypatch.setattr(mlflow_client, "load_champion_model", lambda domain: _FakeModel())
+    monkeypatch.setattr(mlflow_client, "get_champion_version", lambda domain: "3")
 
     resp = client.get("/predictions", params={"domain": "gdp", "country": "uga"})
     body = resp.json()
@@ -26,6 +30,7 @@ def test_predicts_gdp_from_latest_feature_row(client, monkeypatch):
     assert body["domain"] == "gdp"
     assert body["entity"] == {"country": "UGA"}
     assert "lag1_gdp_usd" in body["based_on"]
+    assert body["model_version"] == "3"
     assert body["predicted_value"] == pytest.approx(
         body["based_on"]["lag1_gdp_usd"] + body["based_on"]["gdp_3yr_avg_usd"]
     )

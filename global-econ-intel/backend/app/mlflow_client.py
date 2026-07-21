@@ -42,6 +42,18 @@ def load_champion_model(domain: str):
     return mlflow.pyfunc.load_model(f"models:/{model_name}@{CHAMPION_ALIAS}")
 
 
+def get_champion_version(domain: str) -> str | None:
+    """The version number currently aliased `champion` for `domain`, or None
+    if nothing's been promoted yet - lets /predictions report which model
+    version produced a forecast."""
+    model_name = f"{domain}_forecast"
+    try:
+        version = MlflowClient().get_model_version_by_alias(model_name, CHAMPION_ALIAS)
+    except MlflowException:
+        return None
+    return str(version.version)
+
+
 def list_registered_models() -> list[dict[str, Any]]:
     """One summary row per registered model: name, latest version, whether
     (and which version) is the current champion, and that champion's

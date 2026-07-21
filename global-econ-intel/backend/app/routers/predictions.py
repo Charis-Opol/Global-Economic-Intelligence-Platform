@@ -119,4 +119,5 @@ def predict(
         entity=entity,
         predicted_value=float(prediction),
         based_on={spec.lag_col: lag_value, spec.rolling_col: rolling_value},
+        model_version=mlflow_client.get_champion_version(domain),
     )
