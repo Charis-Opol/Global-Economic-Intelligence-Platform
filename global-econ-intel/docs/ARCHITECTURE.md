@@ -98,12 +98,32 @@ erDiagram
   identical, extending the same guarantee Bronze and the Spark merge step
   already provide.
 
+## FastAPI domain endpoints (Day 2, Step 6)
+
+`backend/app/routers/` adds one read-only router per warehouse fact —
+`/countries` + `/gdp`, `/exchange-rates`, `/weather`, `/crypto`, `/news` — each
+supporting simple filters and a shared pagination envelope (`items`, `total`,
+`limit`, `offset`).
+
+- **The backend only reads** — `app/db.py` opens a fresh `read_only=True`
+  DuckDB connection per request rather than a pooled read/write one, so the
+  API never contends for the file lock a concurrent warehouse load might be
+  holding, and can never itself corrupt the warehouse.
+- **The backend has no dependency on `pipelines/`** — its Dockerfile copies
+  only `app/`, so `app/db.py` and the routers talk to the warehouse purely in
+  SQL against the schema `warehouse/schema/star_schema.sql` defines, with no
+  Python-level coupling to the loader that populated it.
+- **A missing/unloaded warehouse file returns `503`**, not `500` — the
+  warehouse not existing yet is an expected state during first-time setup
+  (before any Step 10 load has run), not a bug.
+
 ## Explicit non-goals for Day 1, Step 1
 
 - No connector logic (Day 1, Step 4)
 - No DAG business logic beyond a proven "hello world" trigger (Day 1, Step 5)
 - No Spark transformation logic (Day 1, Step 8)
-- No FastAPI domain routes (Day 2, Step 6)
+- No ML pipelines / MLflow-registered model / `/predictions` endpoint
+  (Day 2, Step 7)
 - No React UI (Day 3, Step 1)
 
 This document will be updated as each milestone lands.

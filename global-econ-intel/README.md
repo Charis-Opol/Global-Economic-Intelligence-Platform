@@ -9,7 +9,7 @@ rather than one large generation pass. See `docs/ARCHITECTURE.md` for the
 current system diagram and `docs/ROADMAP.md`-equivalent (the 3-Day Sprint
 plan) for what's built vs. what's next.
 
-## Current status: Day 1, Step 10 — DuckDB star schema
+## Current status: Day 2, Step 6 — FastAPI domain endpoints
 
 Completed so far:
 - **Step 1**: `docker-compose.yml`, folder structure, `.env.example`,
@@ -34,10 +34,20 @@ Completed so far:
   coin, location, news source), and one fact per source. Dimensions
   upsert on their natural key onto a stable surrogate key; facts upsert
   on their grain — so a rerun leaves the warehouse identical. 18 new
-  tests. 63 tests total, all passing.
+  tests.
+- **Step 6**: `backend/app/routers/` — one read-only FastAPI router per
+  warehouse fact: `/countries` + `/gdp`, `/exchange-rates`, `/weather`,
+  `/crypto`, `/news`. Each supports simple filters (country/coin/base
+  currency, date ranges, a title substring search for news) and a shared
+  pagination envelope (`items`, `total`, `limit`, `offset`). The backend
+  opens a fresh read-only DuckDB connection per request — no pooled
+  writer, no dependency on `pipelines/` at runtime — and returns `503`
+  rather than `500` if the warehouse hasn't been loaded yet. 16 new
+  tests. 79 tests total, all passing.
 
 What does **not** exist yet (intentionally — separate milestones):
-- ML pipelines / FastAPI domain endpoints (Day 2)
+- ML pipelines / MLflow-registered model / `/predictions` endpoint
+  (Day 2, Step 7)
 - React application UI (Day 3)
 - Superset dashboards (Day 3)
 - Wiring the validate → load step into the Airflow DAGs as an automatic
@@ -54,12 +64,14 @@ pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-All 63 tests run offline. Connectors mock HTTP, ingestion/storage tests
+All 79 tests run offline. Connectors mock HTTP, ingestion/storage tests
 mock boto3, Spark transform tests spin up a real local Spark session,
 Great Expectations tests run against an ephemeral (in-memory) context,
-and warehouse tests load into an in-memory DuckDB — no persistent GX
-project or warehouse file needed. Requires a JDK (11+) on your machine
-for the Spark tests.
+warehouse tests load into an in-memory DuckDB, and backend tests drive a
+FastAPI `TestClient` against that same in-memory warehouse via a
+dependency override — no persistent GX project, warehouse file, or
+running server needed. Requires a JDK (11+) on your machine for the
+Spark tests.
 
 ## Getting started
 
@@ -152,13 +164,34 @@ Once all of the above are true, this milestone is done.
       `SELECT c.name, f.price_usd FROM fact_crypto f JOIN dim_coin c USING (coin_key)`
 
 Day 1 is complete: raw data → Bronze → Spark ETL → Silver → validation →
-DuckDB warehouse. Next milestone: Day 2 — ML pipelines and FastAPI
-domain endpoints reading from the warehouse.
+DuckDB warehouse.
+
+### Acceptance criteria for Step 6 (FastAPI domain endpoints)
+
+- [ ] `pytest tests/test_backend/ -v` passes (16/16) against an in-memory
+      DuckDB via a `TestClient` + dependency override
+- [ ] With a real warehouse loaded (Step 10), `docker compose up -d --build`
+      followed by `GET http://localhost:8000/countries` returns the
+      loaded countries; `GET http://localhost:8000/gdp?country=UGA` filters
+      to just that country
+- [ ] Every list endpoint's response has the `items` / `total` / `limit` /
+      `offset` envelope, and `total` reflects the full filtered match, not
+      just the current page
+- [ ] If `warehouse.duckdb` doesn't exist yet, any domain endpoint returns
+      `503`, not a raw traceback / `500`
+- [ ] `/news` still returns articles with no `source_name` (a legitimately
+      sourceless article isn't dropped by the join)
+
+Next milestone: Day 2, Step 7 — ML pipelines: train a forecasting model
+against the warehouse, register it in MLflow, and add a `/predictions`
+endpoint that loads the registered version.
 
 ## Repository layout
 
 ```
-backend/       FastAPI service (domain endpoints added Day 2)
+backend/       FastAPI service - app/routers/ (read-only domain endpoints
+               over the warehouse, Day 2 Step 6), app/db.py (DuckDB access);
+               ML-backed endpoints added Day 2 Step 7
 frontend/      React app (full UI added Day 3)
 airflow/       DAGs (one per source), plugins, custom Airflow image
 spark/         jobs/ (one ETL entrypoint per source, transforms/ holding
