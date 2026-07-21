@@ -35,5 +35,18 @@ class Settings(BaseSettings):
     auth_admin_username: str = "admin"
     auth_admin_password: str = "change_me"
 
+    # Day 3, Step 5 - Superset embedded-dashboard guest tokens
+    superset_base_url: str = "http://superset:8088"
+    superset_admin_user: str = "admin"
+    superset_admin_password: str = "change_me"
+
+    # Day 3, Step 1 - the frontend is now a real browser app on another
+    # origin, so CORS has to allow it explicitly.
+    cors_allowed_origins: str = "http://localhost:5173"
+
+    @property
+    def cors_allowed_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+
 
 settings = Settings()

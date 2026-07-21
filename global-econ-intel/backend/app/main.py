@@ -8,11 +8,13 @@ Day 2, Step 6 adds read-only domain endpoints over the DuckDB warehouse
 own `/health` and `auth.router` behind a valid JWT - `/health` stays open so
 container healthchecks and load balancers don't need credentials, and
 `auth.router` obviously can't require a token to reach the endpoint that
-issues one.
+issues one. Day 3 adds Superset embedding and service-health endpoints, and
+CORS - the API is now called from a real browser frontend on another origin.
 """
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app import mlflow_client
 from app.auth import get_current_user
@@ -22,9 +24,11 @@ from app.routers import (
     crypto,
     exchange_rate,
     models,
+    monitoring,
     news,
     pipeline_status,
     predictions,
+    superset,
     weather,
     world_bank,
 )
@@ -38,6 +42,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allowed_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 _authenticated = [Depends(get_current_user)]
 
 app.include_router(auth_router)
@@ -49,6 +61,8 @@ app.include_router(news.router, dependencies=_authenticated)
 app.include_router(predictions.router, dependencies=_authenticated)
 app.include_router(models.router, dependencies=_authenticated)
 app.include_router(pipeline_status.router, dependencies=_authenticated)
+app.include_router(superset.router, dependencies=_authenticated)
+app.include_router(monitoring.router, dependencies=_authenticated)
 
 
 @app.get("/health")

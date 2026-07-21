@@ -9,7 +9,7 @@ rather than one large generation pass. See `docs/ARCHITECTURE.md` for the
 current system diagram and `docs/ROADMAP.md`-equivalent (the 3-Day Sprint
 plan) for what's built vs. what's next.
 
-## Current status: Day 2 complete — Analytics and Machine Learning
+## Current status: Day 3 complete — User Experience
 
 Completed so far:
 - **Step 1**: `docker-compose.yml`, folder structure, `.env.example`,
@@ -103,19 +103,76 @@ data to build features or a `/predictions` model from before this.
   app serves a prediction from whatever's aliased `champion`; plus a
   real login → token → protected-call flow.
 
-131 tests total (111 passing here; the other 20 are Spark transform tests
+### Day 3 — User Experience
+
+- **Step 1 (React scaffold)**: `frontend/` — Vite + React 19 + TypeScript +
+  Tailwind, with a small set of hand-written shadcn/ui-style primitives in
+  `src/components/ui/` (shadcn ships source you own, not a package you
+  import). Routing via `react-router-dom`, server state via
+  `@tanstack/react-query`.
+- **Step 2 (auth pages)**: `src/pages/login-page.tsx` + `src/hooks/use-auth.tsx`
+  — calls the Day 2 `/auth/login` endpoint, stores the JWT, and a
+  `gei:unauthorized` window event (fired by the API client on any 401)
+  clears the session and bounces to `/login` from anywhere in the app.
+- **Step 3 (dashboard layout)**: `src/components/layout/` — a sidebar +
+  topbar shell with a mobile drawer (Radix Dialog-based `Sheet`), dark mode
+  (class-based, persisted to `localStorage`), and stat `Card`s on the
+  overview page.
+- **Step 4 (API integration)**: `src/components/data/data-explorer.tsx` is
+  one generic paginated/filterable table, configured per domain by six thin
+  page files — mirrors the backend's own repository pattern (one shared
+  implementation, per-domain configuration) instead of six near-duplicate
+  table components.
+- **Step 5 (Superset embedding)**: real guest-token embedding (not a public
+  iframe) — `backend/app/superset_client.py` runs Superset's own
+  login → CSRF → guest-token flow, `src/components/superset/superset-embed.tsx`
+  mounts the dashboard via `@superset-ui/embedded-sdk`. `superset/dashboards/`
+  holds declarative YAML for six example dashboards (GDP, Inflation,
+  Weather, Crypto, Exchange, Forecasts) — **authored without a live Superset
+  instance to validate against**; see that folder's README before relying
+  on it.
+- **Step 6 (monitoring page)**: `backend/app/monitoring.py` +
+  `src/pages/monitoring-page.tsx` — service-reachability checks (MinIO,
+  MLflow, Airflow, this API), deliberately not literal Docker container
+  introspection (that needs the Docker socket mounted into a public-facing
+  container — a real security cost not worth paying for a status page),
+  alongside the existing `/pipeline-status` view of the four training DAGs.
+- **Step 7 (predictions page)**: `src/pages/predictions-page.tsx` — a form
+  per forecast domain calling `/predictions`, with a Recharts bar chart of
+  the features the prediction was based on.
+- **Step 8 (settings)**: account info, a theme toggle, and the frontend's
+  configured API/Superset URLs.
+- **Step 9 (Docker optimization)**: multi-stage builds for both
+  `backend/Dockerfile` (build stage discarded, non-root final user) and
+  `frontend/Dockerfile` (`dev`/`build`/`prod` stages — `prod` serves the
+  static build via nginx with no Node.js at runtime), plus `.dockerignore`
+  per service.
+- **Step 10 (documentation)**: this file, `docs/ARCHITECTURE.md`,
+  [`docs/API.md`](docs/API.md) (endpoint map — FastAPI's own `/docs` is the
+  authoritative reference), and [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+  (a deployment *guide* — actually deploying to a cloud account is Day 4).
+
+The login page, its error states, and dark mode were verified rendering
+correctly in a real headless-Chromium session (no backend running, so API
+calls 404'd as expected - the check was that the app boots, redirects to
+`/login`, and renders without a React crash). The rest of the frontend's
+pages were built and type-check/build clean but weren't each individually
+browser-tested against a live backend in this pass.
+
+139 tests total (119 passing here; the other 20 are Spark transform tests
 that fail in this sandbox purely from a pre-existing py4j/JVM environment
 issue, unrelated to any of this code).
 
 What does **not** exist yet (intentionally — separate milestones):
-- React application UI (Day 3)
-- Superset dashboards (Day 3)
+- Actual cloud deployment (Day 4) — `docs/DEPLOYMENT.md` is the guide for
+  it, not the deployment itself
 - Wiring the validate → load step into the Airflow DAGs as an automatic
   gate after each Spark job. The pieces exist (`validate_silver.py` from
   Step 9, and `load_warehouse.py --validate` from Step 10 already chains
-  them), but they aren't wired into a DAG yet — a natural next increment,
-  deliberately deferred so it doesn't get thrown away if Day 3's needs
-  change the schema.
+  them), but they aren't wired into a DAG yet.
+- Live verification of the Superset dashboard YAML imports and the guest
+  token flow end-to-end (needs a running Superset instance this environment
+  doesn't have) — see `superset/dashboards/README.md`.
 
 ## Running the tests
 
@@ -124,7 +181,7 @@ pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-All 131 tests run offline. Connectors mock HTTP, ingestion/storage tests
+All 139 tests run offline. Connectors mock HTTP, ingestion/storage tests
 mock boto3, Spark transform tests spin up a real local Spark session,
 Great Expectations tests run against an ephemeral (in-memory) context,
 warehouse tests load into an in-memory DuckDB, backend tests drive a
@@ -286,7 +343,7 @@ DuckDB warehouse.
 
 ### Acceptance criteria for Step 6 (FastAPI domain + ML endpoints)
 
-- [ ] `pytest tests/test_backend/ -v` passes (34/34) against an in-memory
+- [ ] `pytest tests/test_backend/ -v` passes (42/42) against an in-memory
       DuckDB via a `TestClient` + dependency override
 - [ ] With a real warehouse loaded (Step 10), logging in (Step 7) and
       calling `GET http://localhost:8000/gdp?country=UGA` filters to just
@@ -318,23 +375,60 @@ Day 2 is complete: warehouse views and features → MLflow tracking and
 registry → four forecast models → a nightly training DAG → a
 JWT-protected FastAPI serving both data and predictions.
 
-Next milestone: Day 3 — the React frontend and Superset dashboards.
+### Acceptance criteria for Day 3 (User Experience)
+
+- [ ] `cd frontend && npm install && npm run build` succeeds with no
+      TypeScript errors and no bundle-size warnings
+- [ ] `npm run dev` serves the app; an unauthenticated visit to `/` redirects
+      to `/login` and renders the sign-in form (verified in this pass via a
+      real headless-Chromium session, including the destructive-`Alert`
+      error path and dark mode)
+- [ ] Logging in with the configured admin credential lands on the
+      Dashboard, and the sidebar reaches every data domain, Predictions,
+      Dashboards, Monitoring, and Settings
+- [ ] Each data page's table reflects the backend's real pagination/filter
+      query params (not a client-side slice of one large fetch)
+- [ ] The Predictions page calls `/predictions` and renders a chart of the
+      `based_on` features once a model is deployed
+- [ ] The Monitoring page shows all four services' reachability and all
+      four training DAGs' latest state
+- [ ] `docker build --target prod ./frontend` succeeds and the resulting
+      image serves the app under nginx with client-side routes working
+      (`try_files` fallback to `index.html`)
+- [ ] Superset dashboard import: see `superset/dashboards/README.md` for
+      exactly what to verify - this could not be checked against a live
+      Superset instance in this pass
+
+Day 3 is complete: a JWT-authenticated React app over every Day 1/2
+endpoint, embedded Superset dashboards, pipeline/service monitoring,
+live predictions, and optimized production Docker images.
+
+Next milestone: Day 4 — actual cloud deployment. See
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the guide.
 
 ## Repository layout
 
 ```
 backend/       FastAPI service - app/routers/ (domain + ML endpoints),
                app/db.py + app/repository.py (DuckDB access/queries),
-               app/mlflow_client.py + app/airflow_client.py (thin wrappers
-               around MLflow's registry and Airflow's REST API),
-               app/auth.py (Day 2, Step 7 JWT). No dependency on pipelines/.
-frontend/      React app (full UI added Day 3)
+               app/mlflow_client.py + app/airflow_client.py + app/superset_client.py
+               (thin wrappers around MLflow, Airflow, and Superset's own
+               REST APIs), app/monitoring.py (service-health checks),
+               app/auth.py (JWT). No dependency on pipelines/.
+frontend/      Vite + React + TypeScript + Tailwind app - src/pages/ (one
+               per route), src/components/ (ui/ hand-written shadcn-style
+               primitives, layout/, data/, superset/, dashboard/),
+               src/hooks/ (auth, theme), src/lib/ (api-client, utils, jwt),
+               src/types/ (hand-mirrored backend schemas)
 airflow/       DAGs - ingest_*.py (Day 1, Step 5) and train_*_forecast.py
                (Day 2, Step 5, via _training_dag_factory.py), plugins,
                custom Airflow image
 spark/         jobs/ (one ETL entrypoint per source, transforms/ holding
                the pure clean/normalize/merge/feature-engineer logic),
                custom Spark image
+superset/      superset_config.py (embedding, CORS, guest tokens), Dockerfile
+               (adds duckdb-engine to the stock image), dashboards/ (Day 3
+               Step 5 declarative YAML for the six example dashboards)
 warehouse/     DuckDB file + schema/ (star_schema.sql, views.sql)
 data/          Local mirror of bronze/silver/gold (MinIO is source of truth)
 models/        Trained model artifacts (MLflow registry is source of truth)
@@ -348,6 +442,6 @@ pipelines/     connectors/ (World Bank + inflation, Open-Meteo, ExchangeRate,
 config/        Shared Pydantic settings used across services
 tests/         Cross-service integration tests, including test_ml/ and
                test_integration/ (Day 2)
-docs/          Architecture and planning docs
+docs/          Architecture and planning docs, API.md and DEPLOYMENT.md (Day 3)
 scripts/       One-off ops scripts (e.g. Postgres multi-db init)
 ```
