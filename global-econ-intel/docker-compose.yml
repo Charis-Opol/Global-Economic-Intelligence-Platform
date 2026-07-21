@@ -19,18 +19,36 @@ x-airflow-common: &airflow-common
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    # Airflow's default safe-mode DAG prefilter skips any .py file whose raw
+    # bytes don't contain BOTH the literal substrings "DAG" and "airflow"
+    # before even attempting a full parse. The thin per-connector files here
+    # (ingest_world_bank.py etc.) just do `from _ingestion_dag_factory import
+    # build_ingestion_dag` - neither literal substring appears, so they were
+    # being silently skipped entirely (no error, just never parsed) while
+    # only the factory modules themselves showed up to the scheduler.
+    AIRFLOW__CORE__DAG_DISCOVERY_SAFE_MODE: "false"
     AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    # DAG factories do `from pipelines.tasks.ingestion import ...` - without
+    # pipelines/'s parent on PYTHONPATH, every DAG using pipelines.* fails to
+    # even parse (ModuleNotFoundError: no module named 'pipelines'). Set to
+    # /opt (not /opt/airflow) to match where pipelines/config are mounted
+    # below - as *siblings* of warehouse/, exactly like the host repo layout,
+    # since pipelines/warehouse/schema.py locates its SQL schema file via
+    # `Path(__file__).parents[2] / "warehouse" / "schema"`, which only
+    # resolves correctly if pipelines/ and warehouse/ really are siblings.
+    PYTHONPATH: /opt
     MINIO_ENDPOINT: ${MINIO_ENDPOINT}
     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     MLFLOW_TRACKING_URI: http://mlflow:5000
+    NEWSAPI_KEY: ${NEWSAPI_KEY}
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
     - ./airflow/logs:/opt/airflow/logs
-    - ./pipelines:/opt/airflow/pipelines
-    - ./config:/opt/airflow/config
+    - ./pipelines:/opt/pipelines
+    - ./config:/opt/config
     - ./warehouse:/opt/warehouse
   depends_on:
     postgres:
@@ -148,11 +166,24 @@ services:
         condition: service_completed_successfully
 
   # ---------- Distributed compute ----------
+  # `command:` runs the standalone master/worker directly via spark-class,
+  # in the foreground - SPARK_MODE (bitnami/spark's old master/worker
+  # switch) does nothing on this image: `bitnami/spark:3.5` no longer
+  # resolves to a real pullable tag (Bitnami discontinued the free
+  # standalone-cluster image), and what's cached locally under that name is
+  # actually the official Apache Spark image, built for Spark-on-Kubernetes
+  # (`driver`/`executor` sub-commands) rather than standalone mode.
   spark-master:
     build:
       context: ./spark
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master", "--host", "0.0.0.0", "--port", "7077", "--webui-port", "8080"]
     environment:
-      SPARK_MODE: master
+      # Read by common.py's build_spark_session() (S3A config) when
+      # spark-submit is run client-mode from this container - the driver
+      # process picks these up directly from its own container env.
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "7077:7077"
       - "8081:8080"
@@ -163,9 +194,11 @@ services:
   spark-worker:
     build:
       context: ./spark
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     environment:
-      SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark-master:7077
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     depends_on:
       - spark-master
     volumes:
