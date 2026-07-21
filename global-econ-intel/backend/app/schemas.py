@@ -96,3 +96,26 @@ class NewsArticle(BaseModel):
     published_at: datetime | None = None
     date: date
     articles_that_day: int | None = None
+
+
+class PredictionResponse(BaseModel):
+    domain: str
+    entity: dict[str, str]
+    predicted_value: float
+    based_on: dict[str, float | None]
+    model_version: str | None = None
+
+
+class RegisteredModel(BaseModel):
+    name: str
+    latest_version: str | None = None
+    champion_version: str | None = None
+    metrics: dict[str, float]
+
+
+class PipelineStatusEntry(BaseModel):
+    dag_id: str
+    state: str | None = None
+    execution_date: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None

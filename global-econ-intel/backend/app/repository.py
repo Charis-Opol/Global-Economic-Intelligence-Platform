@@ -176,6 +176,44 @@ def list_crypto(
     return _paginated(con, "view_crypto", clauses, params, "date, coin_id", limit, offset)
 
 
+def latest_gdp_row(con: duckdb.DuckDBPyConnection, country: str) -> dict[str, Any] | None:
+    """Most recent row for `country` from view_gdp - the feature row
+    /predictions feeds into the champion GDP model."""
+    rows = fetch_rows(
+        con, "SELECT * FROM view_gdp WHERE country_iso3 = ? ORDER BY year DESC LIMIT 1",
+        [country.upper()],
+    )
+    return rows[0] if rows else None
+
+
+def latest_inflation_row(con: duckdb.DuckDBPyConnection, country: str) -> dict[str, Any] | None:
+    rows = fetch_rows(
+        con, "SELECT * FROM view_inflation WHERE country_iso3 = ? ORDER BY year DESC LIMIT 1",
+        [country.upper()],
+    )
+    return rows[0] if rows else None
+
+
+def latest_exchange_rate_row(
+    con: duckdb.DuckDBPyConnection, base: str, quote: str
+) -> dict[str, Any] | None:
+    rows = fetch_rows(
+        con,
+        "SELECT * FROM view_exchange_rate WHERE base_code = ? AND currency = ? "
+        "ORDER BY date DESC LIMIT 1",
+        [base.upper(), quote.upper()],
+    )
+    return rows[0] if rows else None
+
+
+def latest_crypto_row(con: duckdb.DuckDBPyConnection, coin_id: str) -> dict[str, Any] | None:
+    rows = fetch_rows(
+        con, "SELECT * FROM view_crypto WHERE coin_id = ? ORDER BY date DESC LIMIT 1",
+        [coin_id.lower()],
+    )
+    return rows[0] if rows else None
+
+
 def list_news(
     con: duckdb.DuckDBPyConnection,
     *,
