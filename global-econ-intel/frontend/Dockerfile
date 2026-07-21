@@ -1,3 +1,21 @@
+# Three stages, three different ways this gets built - pick the one that
+# matches what you're doing:
+#
+#   docker compose up --build        -> builds `dev` (docker-compose.yml
+#                                        pins `target: dev` on the frontend
+#                                        service) - hot reload, same as
+#                                        `npm run dev` but containerized.
+#   docker build --target prod .     -> the real deployable image: static
+#                                        assets built once, served by nginx,
+#                                        no Node.js in the final image at all.
+#   (no Docker at all)               -> see the root README's "Running
+#                                        locally without Docker" section -
+#                                        just `npm install && npm run dev`,
+#                                        no image involved.
+#
+# `build` (compiling static assets) is an intermediate stage `prod` depends
+# on - it's never targeted directly.
+
 # ---- deps: installed once, cached across the dev and build stages ----
 FROM node:24-alpine AS deps
 WORKDIR /app

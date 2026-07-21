@@ -1,3 +1,12 @@
+# The full stack: nine services, real Airflow/Spark/MLflow/Superset. Needs
+# Docker Desktop (or another Compose-compatible engine) actually running.
+#
+# `docker compose up -d --build` after `cp .env.example .env` and filling
+# in real secrets - see the root README's "Getting started" section.
+#
+# For just the backend + frontend without Docker at all (faster iteration,
+# or Docker isn't available), see that same README's "Running locally
+# without Docker" section instead - this file isn't involved in that path.
 version: "3.9"
 
 x-airflow-common: &airflow-common

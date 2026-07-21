@@ -1,3 +1,13 @@
+# Built automatically by `docker compose up --build` (docker-compose.yml's
+# backend service has no `target:`, so Docker just builds this file's last
+# stage - there's only one runtime outcome here, unlike frontend/Dockerfile's
+# dev/build/prod split).
+#
+# To run this backend without Docker at all (e.g. Docker Desktop isn't
+# running, or you just want faster iteration), see the root README's
+# "Running locally without Docker" section instead - that's a plain
+# `uvicorn app.main:app --reload` process, not this image.
+
 # ---- builder: resolve/compile dependencies once, discard the toolchain ----
 FROM python:3.13-slim AS builder
 

@@ -11,22 +11,38 @@ just for a single snapshot in time rather than an accumulated history.
 
 News is skipped - NEWSAPI_KEY isn't set in this environment.
 
-Usage:
+Usage (from the repo root - global-econ-intel/):
     python scripts/load_local_demo_data.py [--duckdb-path PATH]
+
+Requires requirements-dev.txt installed (`pip install -r requirements-dev.txt`).
+`--duckdb-path` defaults to `warehouse/warehouse.duckdb`, resolved relative
+to wherever you run this from - matches what the local-dev backend
+(`backend/.env.example`'s DUCKDB_PATH) reads from by default. See the root
+README's "Running locally without Docker" section for the full local-dev
+walkthrough this script is meant to be one step of.
 """
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 import pandas as pd
 
-from pipelines.connectors.coingecko import CoinGeckoConnector
-from pipelines.connectors.exchange_rate import ExchangeRateConnector
-from pipelines.connectors.open_meteo import OpenMeteoConnector
-from pipelines.connectors.world_bank import WorldBankConnector, WorldBankInflationConnector
-from pipelines.warehouse.loader import WarehouseLoader
-from pipelines.warehouse.schema import connect, create_schema
+# Run directly (`python scripts/load_local_demo_data.py`), Python only puts
+# scripts/ itself on sys.path, not the repo root - so `pipelines` wouldn't
+# otherwise be importable. Insert the repo root explicitly instead of
+# requiring callers to remember `PYTHONPATH=.` (the same reason
+# tests/test_backend/conftest.py inserts backend/ onto sys.path).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from pipelines.connectors.coingecko import CoinGeckoConnector  # noqa: E402
+from pipelines.connectors.exchange_rate import ExchangeRateConnector  # noqa: E402
+from pipelines.connectors.open_meteo import OpenMeteoConnector  # noqa: E402
+from pipelines.connectors.world_bank import WorldBankConnector, WorldBankInflationConnector  # noqa: E402
+from pipelines.warehouse.loader import WarehouseLoader  # noqa: E402
+from pipelines.warehouse.schema import connect, create_schema  # noqa: E402
 
 TODAY = date.today().isoformat()
 

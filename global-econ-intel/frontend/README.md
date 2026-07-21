@@ -18,7 +18,11 @@ npm run dev
 ```
 
 Requires the backend (`../backend`) running and reachable at
-`VITE_API_BASE_URL` - the app itself has no offline/mock mode.
+`VITE_API_BASE_URL` - the app itself has no offline/mock mode. See the root
+README's "Running locally without Docker" section for the backend side of
+this (including `../backend/.env.example` and
+`../scripts/load_local_demo_data.py`, which loads real data into the
+warehouse so the data pages aren't just empty tables).
 
 ## Scripts
 

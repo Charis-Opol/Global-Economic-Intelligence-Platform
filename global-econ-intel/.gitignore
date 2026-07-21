@@ -6,6 +6,7 @@ node_modules/
 .venv/
 *.duckdb
 mlruns/
+mlflow-local/
 frontend/dist/
 frontend/*.tsbuildinfo
 data/bronze/*
