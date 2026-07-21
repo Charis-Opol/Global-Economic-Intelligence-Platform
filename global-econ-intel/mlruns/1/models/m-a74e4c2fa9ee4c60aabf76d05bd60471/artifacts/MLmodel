@@ -1,0 +1,23 @@
+artifact_path: file:C:/Users/chari/Desktop/Global-Economic-Intelligence-Platform/global-econ-intel/mlruns/1/models/m-a74e4c2fa9ee4c60aabf76d05bd60471/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.13.7
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.7.2
+    skops_trusted_types: null
+mlflow_version: 3.14.0
+model_id: m-a74e4c2fa9ee4c60aabf76d05bd60471
+model_size_bytes: 6818
+model_uuid: m-a74e4c2fa9ee4c60aabf76d05bd60471
+prompts: null
+run_id: 5c51226d755940908f0bdc9221f4729f
+utc_time_created: '2026-07-21 10:48:36.686548'
