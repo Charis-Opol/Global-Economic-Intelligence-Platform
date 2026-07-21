@@ -15,17 +15,21 @@ x-airflow-common: &airflow-common
     MINIO_ENDPOINT: ${MINIO_ENDPOINT}
     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    MLFLOW_TRACKING_URI: http://mlflow:5000
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
     - ./airflow/logs:/opt/airflow/logs
     - ./pipelines:/opt/airflow/pipelines
     - ./config:/opt/airflow/config
+    - ./warehouse:/opt/warehouse
   depends_on:
     postgres:
       condition: service_healthy
     redis:
       condition: service_healthy
+    mlflow:
+      condition: service_started
 
 services:
 
@@ -175,17 +179,27 @@ services:
       postgres:
         condition: service_healthy
 
-  # ---------- Application layer (placeholders until Day 2 / Day 3) ----------
+  # ---------- Application layer (backend built out Day 2; frontend UI is Day 3) ----------
   backend:
     build:
       context: ./backend
     environment:
       DUCKDB_PATH: /opt/warehouse/warehouse.duckdb
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      AIRFLOW_BASE_URL: http://airflow-webserver:8080
+      AIRFLOW_ADMIN_USER: ${AIRFLOW_ADMIN_USER}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      AUTH_ADMIN_USERNAME: ${AUTH_ADMIN_USERNAME}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD}
     ports:
       - "8000:8000"
     volumes:
       - ./warehouse:/opt/warehouse
+    depends_on:
+      mlflow:
+        condition: service_started
 
   frontend:
     build:

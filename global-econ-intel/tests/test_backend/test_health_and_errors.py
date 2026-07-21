@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from app.auth import create_access_token
 from app.db import get_connection
 from app.main import app
 
@@ -26,7 +27,8 @@ def test_missing_warehouse_file_returns_503(monkeypatch):
     missing_path = Path(tempfile.mkdtemp()) / "does_not_exist.duckdb"
     monkeypatch.setattr(settings, "duckdb_path", str(missing_path))
     app.dependency_overrides.pop(get_connection, None)  # exercise the real dependency
+    token = create_access_token(subject="test-user")
 
-    resp = TestClient(app).get("/countries")
+    resp = TestClient(app, headers={"Authorization": f"Bearer {token}"}).get("/countries")
 
     assert resp.status_code == 503

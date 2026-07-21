@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
 from pipelines.warehouse.loader import WarehouseLoader  # noqa: E402
 from pipelines.warehouse.schema import connect, create_schema  # noqa: E402
 
+from app.auth import create_access_token  # noqa: E402
 from app.db import get_connection  # noqa: E402
 from app.main import app  # noqa: E402
 
@@ -96,6 +97,18 @@ def warehouse():
             }
         )
     )
+    loader.load_world_bank_inflation(
+        pd.DataFrame(
+            {
+                "country_iso3": ["UGA", "UGA", "KEN"],
+                "country_name": ["Uganda", "Uganda", "Kenya"],
+                "indicator_id": ["FP.CPI.TOTL.ZG"] * 3,
+                "year": [2020, 2021, 2021],
+                "inflation_pct": [4.0, 5.0, 6.1],
+                "inflation_trend": [None, 1.0, None],
+            }
+        )
+    )
 
     try:
         yield con
@@ -105,9 +118,14 @@ def warehouse():
 
 @pytest.fixture
 def client(warehouse):
-    """A TestClient wired to the fixture warehouse instead of a real file."""
+    """A TestClient wired to the fixture warehouse instead of a real file,
+    pre-authenticated with a valid bearer token so every existing domain
+    test keeps working unchanged now that Step 7 gates those routes behind
+    JWT auth. Auth-specific tests (test_auth.py) construct their own
+    unauthenticated TestClient instead of using this fixture."""
     app.dependency_overrides[get_connection] = lambda: warehouse
+    token = create_access_token(subject="test-user")
     try:
-        yield TestClient(app)
+        yield TestClient(app, headers={"Authorization": f"Bearer {token}"})
     finally:
         app.dependency_overrides.pop(get_connection, None)
