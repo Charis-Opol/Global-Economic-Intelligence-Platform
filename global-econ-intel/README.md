@@ -9,7 +9,7 @@ rather than one large generation pass. See `docs/ARCHITECTURE.md` for the
 current system diagram and `docs/ROADMAP.md`-equivalent (the 3-Day Sprint
 plan) for what's built vs. what's next.
 
-## Current status: Day 1, Step 9 — Great Expectations validation
+## Current status: Day 1, Step 10 — DuckDB star schema
 
 Completed so far:
 - **Step 1**: `docker-compose.yml`, folder structure, `.env.example`,
@@ -27,17 +27,25 @@ Completed so far:
   alone), **duplicates** (uniqueness on each dataset's natural key), and
   **ranges** (e.g. rate > 0, latitude ∈ [-90, 90], year ∈ [1960, 2100]).
   10 new tests — each suite gets a "valid data passes" case and a
-  "catches every violation type at once" case. 45 tests total, all
-  passing.
+  "catches every violation type at once" case.
+- **Step 10**: `pipelines/warehouse/` — loads the validated Silver layer
+  into a **DuckDB star schema** (`warehouse/schema/star_schema.sql`): a
+  conformed `dim_date`, one dimension per entity (country, currency,
+  coin, location, news source), and one fact per source. Dimensions
+  upsert on their natural key onto a stable surrogate key; facts upsert
+  on their grain — so a rerun leaves the warehouse identical. 18 new
+  tests. 63 tests total, all passing.
 
 What does **not** exist yet (intentionally — separate milestones):
-- DuckDB star schema (Step 10)
 - ML pipelines / FastAPI domain endpoints (Day 2)
 - React application UI (Day 3)
 - Superset dashboards (Day 3)
-- Wiring `validate_silver.py` into the Airflow DAGs as an automatic gate
-  after each Spark job (a natural next increment, not done yet, so it
-  doesn't get thrown away if Day 2's warehouse layer changes the schema)
+- Wiring the validate → load step into the Airflow DAGs as an automatic
+  gate after each Spark job. The pieces exist (`validate_silver.py` from
+  Step 9, and `load_warehouse.py --validate` from Step 10 already chains
+  them), but they aren't wired into a DAG yet — a natural next increment,
+  deliberately deferred so it doesn't get thrown away if Day 2's needs
+  change the schema.
 
 ## Running the tests
 
@@ -46,11 +54,12 @@ pip install -r requirements-dev.txt
 pytest tests/ -v
 ```
 
-All 45 tests run offline. Connectors mock HTTP, ingestion/storage tests
+All 63 tests run offline. Connectors mock HTTP, ingestion/storage tests
 mock boto3, Spark transform tests spin up a real local Spark session,
-and Great Expectations tests run against an ephemeral (in-memory)
-context with no persistent GX project needed. Requires a JDK (11+) on
-your machine for the Spark tests.
+Great Expectations tests run against an ephemeral (in-memory) context,
+and warehouse tests load into an in-memory DuckDB — no persistent GX
+project or warehouse file needed. Requires a JDK (11+) on your machine
+for the Spark tests.
 
 ## Getting started
 
@@ -128,9 +137,23 @@ Once all of the above are true, this milestone is done.
       runs against a real Silver Parquet file (produced by Step 8) and
       prints PASSED or FAILED with a non-zero exit code on failure
 
-Next milestone: Day 1, Step 10 — DuckDB star schema (fact + dimension
-tables loaded from the validated Silver layer). That's the last piece
-of Day 1 — "everything automatically populates the warehouse."
+### Acceptance criteria for Step 10 (DuckDB star schema)
+
+- [ ] `pytest tests/test_warehouse/ -v` passes (18/18) against an
+      in-memory DuckDB
+- [ ] `python -m pipelines.warehouse.load_warehouse --source exchange_rate --path <silver parquet path>`
+      loads a real Silver Parquet file (produced by Step 8) into
+      `warehouse/warehouse.duckdb` and prints how many rows it loaded
+- [ ] Loading the same Silver dataset twice leaves row counts unchanged
+      (dimensions upsert on natural key, facts upsert on grain)
+- [ ] Adding `--validate` runs the Step 9 suite first and refuses to load
+      (non-zero exit) when validation fails
+- [ ] The loaded warehouse answers a star query, e.g.
+      `SELECT c.name, f.price_usd FROM fact_crypto f JOIN dim_coin c USING (coin_key)`
+
+Day 1 is complete: raw data → Bronze → Spark ETL → Silver → validation →
+DuckDB warehouse. Next milestone: Day 2 — ML pipelines and FastAPI
+domain endpoints reading from the warehouse.
 
 ## Repository layout
 
@@ -147,7 +170,8 @@ models/        Trained model artifacts (MLflow registry is source of truth)
 pipelines/     connectors/ (World Bank, Open-Meteo, ExchangeRate, CoinGecko,
                NewsAPI), storage/ (MinIO Bronze writer), tasks/ (shared
                ingestion logic imported by DAGs), validation/ (Great
-               Expectations suites, one per Silver dataset)
+               Expectations suites, one per Silver dataset), warehouse/
+               (loads validated Silver into the DuckDB star schema)
 config/        Shared Pydantic settings used across services
 tests/         Cross-service integration tests
 docs/          Architecture and planning docs

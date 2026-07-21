@@ -36,11 +36,8 @@ def _read_ddl() -> str:
 def create_schema(con: duckdb.DuckDBPyConnection) -> None:
     """Apply the star-schema DDL. Idempotent - safe to call before every load.
 
-    Statements are executed one at a time so this works identically across
-    DuckDB versions regardless of whether the driver runs multi-statement
-    strings. The DDL contains no semicolons inside string literals, so a plain
-    split on ``;`` is safe.
+    DuckDB parses the whole file in one call, handling `--` comments and the
+    multiple statements itself (splitting on `;` in Python would wrongly break
+    on semicolons that appear inside comments).
     """
-    for statement in _read_ddl().split(";"):
-        if statement.strip():
-            con.execute(statement)
+    con.execute(_read_ddl())
