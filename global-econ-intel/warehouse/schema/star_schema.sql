@@ -105,6 +105,19 @@ CREATE TABLE IF NOT EXISTS fact_gdp (
     PRIMARY KEY (country_key, indicator_id, year)
 );
 
+-- Inflation (Day 2): same grain and shape as fact_gdp - a separate table
+-- rather than folding into fact_gdp, since "gdp_usd" would be a misnomer
+-- for an inflation percentage. Shares dim_country and indicator_id follows
+-- the same convention (World Bank indicator code, e.g. FP.CPI.TOTL.ZG).
+CREATE TABLE IF NOT EXISTS fact_inflation (
+    country_key     INTEGER NOT NULL REFERENCES dim_country (country_key),
+    indicator_id    VARCHAR NOT NULL,
+    year            INTEGER NOT NULL,
+    inflation_pct   DOUBLE,
+    inflation_trend DOUBLE,
+    PRIMARY KEY (country_key, indicator_id, year)
+);
+
 -- Exchange rate: one row per (base, quote, day). Two FKs into the one
 -- conformed currency dimension.
 CREATE TABLE IF NOT EXISTS fact_exchange_rate (

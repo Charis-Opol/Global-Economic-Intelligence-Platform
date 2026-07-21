@@ -80,3 +80,16 @@ class WorldBankConnector(BaseConnector[WorldBankResponse]):
     def _has_next_page(self, payload: Any, page: int) -> bool:
         meta = payload[0] if isinstance(payload, list) else {}
         return page < meta.get("pages", 1)
+
+
+class WorldBankInflationConnector(WorldBankConnector):
+    """Fetches inflation (consumer prices, annual %) for all countries.
+
+    Day 2, Step 1/2 needs a real inflation series to build the `/inflation`
+    endpoint and an "inflation trend" feature on top of - reuses every bit of
+    WorldBankConnector's machinery (same API shape, same pagination), just a
+    different indicator and source name.
+    """
+
+    name = "world_bank_inflation"
+    indicator = "FP.CPI.TOTL.ZG"

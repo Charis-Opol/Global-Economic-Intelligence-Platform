@@ -36,6 +36,19 @@ class GDPRecord(BaseModel):
     year: int
     gdp_usd: float | None = None
     gdp_growth_rate: float | None = None
+    lag1_gdp_usd: float | None = None
+    gdp_3yr_avg_usd: float | None = None
+
+
+class Inflation(BaseModel):
+    country_iso3: str
+    country_name: str | None = None
+    indicator_id: str
+    year: int
+    inflation_pct: float | None = None
+    inflation_trend: float | None = None
+    lag1_inflation_pct: float | None = None
+    inflation_3yr_avg_pct: float | None = None
 
 
 class ExchangeRate(BaseModel):
@@ -44,6 +57,8 @@ class ExchangeRate(BaseModel):
     date: date
     rate: float | None = None
     exchange_momentum: float | None = None
+    lag1_rate: float | None = None
+    rate_7d_avg: float | None = None
 
 
 class Weather(BaseModel):
@@ -55,6 +70,7 @@ class Weather(BaseModel):
     precipitation_mm: float | None = None
     precip_30d_avg_mm: float | None = None
     rainfall_anomaly_mm: float | None = None
+    temp_max_7d_avg_c: float | None = None
 
 
 class Crypto(BaseModel):
@@ -67,6 +83,8 @@ class Crypto(BaseModel):
     volume_usd: float | None = None
     price_change_pct_24h: float | None = None
     volatility_7d: float | None = None
+    lag1_price_usd: float | None = None
+    price_7d_avg_usd: float | None = None
 
 
 class NewsArticle(BaseModel):

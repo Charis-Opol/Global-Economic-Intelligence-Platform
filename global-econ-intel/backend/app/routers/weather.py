@@ -1,4 +1,4 @@
-"""Weather domain endpoint (Day 2, Step 6)."""
+"""Weather domain endpoint (Day 2, Steps 1 & 6)."""
 from __future__ import annotations
 
 from datetime import date
@@ -6,7 +6,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from app.db import fetch_rows, fetch_scalar, get_connection, where_clause
+from app import repository
+from app.db import get_connection
 from app.schemas import Page, Weather
 
 router = APIRouter(tags=["weather"])
@@ -22,38 +23,12 @@ def list_weather(
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
-    clauses, params = [], []
-    if latitude is not None:
-        clauses.append("l.latitude = ?")
-        params.append(latitude)
-    if longitude is not None:
-        clauses.append("l.longitude = ?")
-        params.append(longitude)
-    if date_from:
-        clauses.append("d.full_date >= ?")
-        params.append(date_from)
-    if date_to:
-        clauses.append("d.full_date <= ?")
-        params.append(date_to)
-    where = where_clause(clauses)
-
-    base_sql = f"""
-        FROM fact_weather f
-        JOIN dim_location l USING (location_key)
-        JOIN dim_date d USING (date_key)
-        {where}
-    """
-    total = fetch_scalar(con, f"SELECT count(*) {base_sql}", params)
-    rows = fetch_rows(
+    return repository.list_weather(
         con,
-        f"""
-        SELECT l.latitude, l.longitude, d.full_date AS date,
-               f.temp_max_c, f.temp_min_c, f.precipitation_mm,
-               f.precip_30d_avg_mm, f.rainfall_anomaly_mm
-        {base_sql}
-        ORDER BY d.full_date, l.latitude, l.longitude
-        LIMIT ? OFFSET ?
-        """,
-        [*params, limit, offset],
+        latitude=latitude,
+        longitude=longitude,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+        offset=offset,
     )
-    return {"items": rows, "total": total, "limit": limit, "offset": offset}

@@ -113,6 +113,37 @@ class WarehouseLoader:
             self.con.unregister("silver_df")
         logger.info("world_bank: loaded %d silver rows into fact_gdp", len(df))
 
+    def load_world_bank_inflation(self, df: pd.DataFrame) -> None:
+        self.con.register("silver_df", df)
+        try:
+            self.con.execute(
+                """
+                INSERT INTO dim_country (country_iso3, country_name)
+                SELECT country_iso3, any_value(country_name)
+                FROM silver_df
+                WHERE country_iso3 IS NOT NULL
+                GROUP BY country_iso3
+                ON CONFLICT (country_iso3)
+                    DO UPDATE SET country_name = excluded.country_name
+                """
+            )
+            self.con.execute(
+                """
+                INSERT INTO fact_inflation
+                    (country_key, indicator_id, year, inflation_pct, inflation_trend)
+                SELECT c.country_key, s.indicator_id, CAST(s.year AS INTEGER),
+                       s.inflation_pct, s.inflation_trend
+                FROM silver_df s
+                JOIN dim_country c ON c.country_iso3 = s.country_iso3
+                ON CONFLICT (country_key, indicator_id, year) DO UPDATE SET
+                    inflation_pct   = excluded.inflation_pct,
+                    inflation_trend = excluded.inflation_trend
+                """
+            )
+        finally:
+            self.con.unregister("silver_df")
+        logger.info("world_bank_inflation: loaded %d silver rows into fact_inflation", len(df))
+
     def load_exchange_rate(self, df: pd.DataFrame) -> None:
         self.con.register("silver_df", df)
         try:
@@ -271,6 +302,7 @@ class WarehouseLoader:
 # so the CLI can offer the same `--source` choices the validator does.
 LOADERS = {
     "world_bank": WarehouseLoader.load_world_bank,
+    "world_bank_inflation": WarehouseLoader.load_world_bank_inflation,
     "exchange_rate": WarehouseLoader.load_exchange_rate,
     "open_meteo": WarehouseLoader.load_open_meteo,
     "coingecko": WarehouseLoader.load_coingecko,

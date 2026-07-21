@@ -96,6 +96,18 @@ def warehouse():
             }
         )
     )
+    loader.load_world_bank_inflation(
+        pd.DataFrame(
+            {
+                "country_iso3": ["UGA", "UGA", "KEN"],
+                "country_name": ["Uganda", "Uganda", "Kenya"],
+                "indicator_id": ["FP.CPI.TOTL.ZG"] * 3,
+                "year": [2020, 2021, 2021],
+                "inflation_pct": [4.0, 5.0, 6.1],
+                "inflation_trend": [None, 1.0, None],
+            }
+        )
+    )
 
     try:
         yield con

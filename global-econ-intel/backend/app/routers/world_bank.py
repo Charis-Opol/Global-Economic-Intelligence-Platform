@@ -1,12 +1,13 @@
-"""World Bank domain endpoints: countries and GDP (Day 2, Step 6)."""
+"""World Bank domain endpoints: countries, GDP, and inflation (Day 2, Steps 1 & 6)."""
 from __future__ import annotations
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from app.db import fetch_rows, fetch_scalar, get_connection, where_clause
-from app.schemas import Country, GDPRecord, Page
+from app import repository
+from app.db import get_connection
+from app.schemas import Country, GDPRecord, Inflation, Page
 
 router = APIRouter(tags=["world-bank"])
 
@@ -18,20 +19,7 @@ def list_countries(
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
-    clauses, params = [], []
-    if search:
-        clauses.append("(country_iso3 ILIKE ? OR country_name ILIKE ?)")
-        params.extend([f"%{search}%", f"%{search}%"])
-    where = where_clause(clauses)
-
-    total = fetch_scalar(con, f"SELECT count(*) FROM dim_country {where}", params)
-    rows = fetch_rows(
-        con,
-        f"SELECT country_iso3, country_name FROM dim_country {where} "
-        "ORDER BY country_iso3 LIMIT ? OFFSET ?",
-        [*params, limit, offset],
-    )
-    return {"items": rows, "total": total, "limit": limit, "offset": offset}
+    return repository.list_countries(con, search=search, limit=limit, offset=offset)
 
 
 @router.get("/gdp", response_model=Page[GDPRecord])
@@ -44,36 +32,33 @@ def list_gdp(
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
-    clauses, params = [], []
-    if country:
-        clauses.append("c.country_iso3 = ?")
-        params.append(country.upper())
-    if indicator_id:
-        clauses.append("f.indicator_id = ?")
-        params.append(indicator_id)
-    if year_min is not None:
-        clauses.append("f.year >= ?")
-        params.append(year_min)
-    if year_max is not None:
-        clauses.append("f.year <= ?")
-        params.append(year_max)
-    where = where_clause(clauses)
-
-    base_sql = f"""
-        FROM fact_gdp f
-        JOIN dim_country c USING (country_key)
-        {where}
-    """
-    total = fetch_scalar(con, f"SELECT count(*) {base_sql}", params)
-    rows = fetch_rows(
+    return repository.list_gdp(
         con,
-        f"""
-        SELECT c.country_iso3, c.country_name, f.indicator_id, f.year,
-               f.gdp_usd, f.gdp_growth_rate
-        {base_sql}
-        ORDER BY c.country_iso3, f.year
-        LIMIT ? OFFSET ?
-        """,
-        [*params, limit, offset],
+        country=country,
+        indicator_id=indicator_id,
+        year_min=year_min,
+        year_max=year_max,
+        limit=limit,
+        offset=offset,
     )
-    return {"items": rows, "total": total, "limit": limit, "offset": offset}
+
+
+@router.get("/inflation", response_model=Page[Inflation])
+def list_inflation(
+    con=Depends(get_connection),
+    country: Annotated[str | None, Query(description="ISO3 country code, e.g. UGA")] = None,
+    indicator_id: str | None = None,
+    year_min: int | None = None,
+    year_max: int | None = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    return repository.list_inflation(
+        con,
+        country=country,
+        indicator_id=indicator_id,
+        year_min=year_min,
+        year_max=year_max,
+        limit=limit,
+        offset=offset,
+    )
