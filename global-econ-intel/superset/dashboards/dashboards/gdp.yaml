@@ -1,12 +1,13 @@
-# uuid below MUST match backend/app/superset_client.py's DASHBOARD_UUIDS["gdp"]
-# and frontend/src/components/superset/dashboard-ids.ts - all three need to
-# agree on which dashboard "gdp" refers to.
+# This is this dashboard's own identity uuid (asset import/export identity)
+# - unrelated to the *embedded*-dashboard uuid Superset generates separately
+# when embedding is enabled (see backend/app/superset_client.py, which looks
+# that one up dynamically by this dashboard's slug, not from this file).
 dashboard_title: GDP
 description: null
 css: null
 slug: gdp
 uuid: fdbf5d8b-5077-4ba7-8421-3f0be46f14d8
-position_json:
+position:
   DASHBOARD_VERSION_KEY: v2
   ROOT_ID:
     type: ROOT
@@ -30,6 +31,7 @@ position_json:
     parents: [ROOT_ID, GRID_ID, ROW-1]
     meta:
       uuid: ea29103b-dc91-4e1a-b6e5-ae4a19ffaeda
+      chartId: 1
       width: 12
       height: 50
       sliceName: GDP by Country and Year

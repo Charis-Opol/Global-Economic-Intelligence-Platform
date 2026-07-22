@@ -43,6 +43,14 @@ x-airflow-common: &airflow-common
     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     MLFLOW_TRACKING_URI: http://mlflow:5000
     NEWSAPI_KEY: ${NEWSAPI_KEY}
+    # Training DAGs log MLflow artifacts directly (mlflow.log_model etc.),
+    # which uploads to s3://gold via boto3 running in *this* container, not
+    # through the mlflow server - boto3 needs these standard env var names
+    # (not the custom MINIO_* ones above) to find MinIO credentials, or every
+    # artifact upload fails with "Unable to locate credentials".
+    MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+    AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+    AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
@@ -215,6 +223,11 @@ services:
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      # MLflow 3.x's built-in DNS-rebinding protection rejects any request
+      # whose Host header isn't on this allowlist - training DAGs connect via
+      # the Docker service name (http://mlflow:5000), which isn't localhost,
+      # so without this every MLflow API call 403s with "Invalid Host header".
+      MLFLOW_SERVER_ALLOWED_HOSTS: "mlflow:5000,localhost:5000,127.0.0.1:5000"
     ports:
       - "5000:5000"
     depends_on:

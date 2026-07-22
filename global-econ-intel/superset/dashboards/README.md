@@ -25,6 +25,14 @@ Before relying on it:
    `superset_config.py`) has "can read on Dashboard" - guest tokens are
    scoped to a role, and Superset doesn't grant that automatically.
 
+Note: enabling *embedding* itself (`POST /api/v1/dashboard/<slug>/embedded`,
+which is a separate step from the import above and generates its own uuid
+distinct from each dashboard's `uuid:` in these YAML files) is handled
+automatically by `backend/app/superset_client.py` the first time a guest
+token is requested for a given dashboard - no manual API call needed. See
+that file's docstring for why the two uuids are different and why that
+distinction matters.
+
 ## Layout
 
 ```

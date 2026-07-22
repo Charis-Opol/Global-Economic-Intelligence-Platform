@@ -1,11 +1,13 @@
-# uuid below MUST match backend/app/superset_client.py's DASHBOARD_UUIDS["weather"]
-# and frontend/src/components/superset/dashboard-ids.ts.
+# This is this dashboard's own identity uuid (asset import/export identity)
+# - unrelated to the *embedded*-dashboard uuid Superset generates separately
+# when embedding is enabled (see backend/app/superset_client.py, which looks
+# that one up dynamically by this dashboard's slug, not from this file).
 dashboard_title: Weather
 description: null
 css: null
 slug: weather
 uuid: b7cbc5fc-a0cf-4a5f-88f9-749a4ac9478c
-position_json:
+position:
   DASHBOARD_VERSION_KEY: v2
   ROOT_ID:
     type: ROOT
@@ -29,6 +31,7 @@ position_json:
     parents: [ROOT_ID, GRID_ID, ROW-1]
     meta:
       uuid: f1ffd56c-7e15-4085-8de6-e0366c1fd4c4
+      chartId: 1
       width: 12
       height: 50
       sliceName: Weather by Day

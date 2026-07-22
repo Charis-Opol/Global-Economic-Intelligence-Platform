@@ -1,5 +1,7 @@
-# uuid below MUST match backend/app/superset_client.py's DASHBOARD_UUIDS["forecasts"]
-# and frontend/src/components/superset/dashboard-ids.ts.
+# This is this dashboard's own identity uuid (asset import/export identity)
+# - unrelated to the *embedded*-dashboard uuid Superset generates separately
+# when embedding is enabled (see backend/app/superset_client.py, which looks
+# that one up dynamically by this dashboard's slug, not from this file).
 #
 # Deliberately chart-less: forecasts are computed live from the MLflow
 # champion model against the latest warehouse feature row (see the app's own
@@ -12,7 +14,7 @@ description: null
 css: null
 slug: forecasts
 uuid: 2366b86b-7c92-441a-b33f-596ae1d7b56e
-position_json:
+position:
   DASHBOARD_VERSION_KEY: v2
   ROOT_ID:
     type: ROOT

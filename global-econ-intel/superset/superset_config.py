@@ -66,6 +66,14 @@ CORS_OPTIONS = {
 TALISMAN_ENABLED = True
 TALISMAN_CONFIG = {
     "force_https": False,
+    # Talisman defaults this to True independently of force_https, which
+    # marks the Flask session cookie Secure - httpx (and any other client)
+    # then silently refuses to send it back over the plain http:// traffic
+    # between containers on the internal Docker network. Without this, the
+    # guest-token flow's CSRF check fails with "The CSRF session token is
+    # missing" because the session cookie from the earlier /csrf_token/ call
+    # never made it back on the /guest_token/ POST.
+    "session_cookie_secure": False,
     "content_security_policy": {
         "frame-ancestors": ["'self'", _FRONTEND_ORIGIN],
     },

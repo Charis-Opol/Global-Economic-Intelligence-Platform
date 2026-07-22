@@ -1,11 +1,13 @@
-# uuid below MUST match backend/app/superset_client.py's DASHBOARD_UUIDS["exchange"]
-# and frontend/src/components/superset/dashboard-ids.ts.
+# This is this dashboard's own identity uuid (asset import/export identity)
+# - unrelated to the *embedded*-dashboard uuid Superset generates separately
+# when embedding is enabled (see backend/app/superset_client.py, which looks
+# that one up dynamically by this dashboard's slug, not from this file).
 dashboard_title: Exchange
 description: null
 css: null
 slug: exchange
 uuid: 7950e4cc-2853-4334-ab19-aa5e50005f6b
-position_json:
+position:
   DASHBOARD_VERSION_KEY: v2
   ROOT_ID:
     type: ROOT
@@ -29,6 +31,7 @@ position_json:
     parents: [ROOT_ID, GRID_ID, ROW-1]
     meta:
       uuid: 67dd47d5-398f-43c7-9bee-065a3c50b49e
+      chartId: 1
       width: 12
       height: 50
       sliceName: Exchange Rates by Day

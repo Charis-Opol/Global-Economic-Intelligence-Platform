@@ -62,3 +62,4 @@ columns:
     filterable: true
     extra: "{}"
 database_uuid: 9c6d5fae-ae4e-46b7-9c4f-3f13515f6217
+version: 1.0.0

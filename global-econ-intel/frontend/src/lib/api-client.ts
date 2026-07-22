@@ -161,5 +161,5 @@ export const api = {
   serviceHealth: () => request<ServiceHealthEntry[]>("/monitoring/services"),
 
   supersetGuestToken: (dashboard: string) =>
-    request<{ token: string }>(`/superset/guest-token${buildQuery({ dashboard })}`),
+    request<{ token: string; dashboard_id: string }>(`/superset/guest-token${buildQuery({ dashboard })}`),
 };

@@ -1,6 +1,19 @@
 slice_name: Crypto Prices by Day
 viz_type: table
-params: '{"datasource": "ee2641a3-b6b8-42b6-884e-e058561bf8ee__table", "viz_type": "table", "query_mode": "raw", "columns": ["date", "coin_id", "symbol", "price_usd", "volatility_7d"], "order_by_cols": ["[\"date\", true]"], "row_limit": 1000, "server_page_length": 10}'
+params:
+  datasource: ee2641a3-b6b8-42b6-884e-e058561bf8ee__table
+  viz_type: table
+  query_mode: raw
+  columns:
+  - date
+  - coin_id
+  - symbol
+  - price_usd
+  - volatility_7d
+  order_by_cols:
+  - '["date", true]'
+  row_limit: 1000
+  server_page_length: 10
 query_context: null
 cache_timeout: null
 uuid: e65cb3d8-e55d-438e-9a99-9e5d21ea923c

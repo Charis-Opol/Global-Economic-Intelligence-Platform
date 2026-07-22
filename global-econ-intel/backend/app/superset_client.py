@@ -7,16 +7,22 @@ token. The frontend never sees the admin credential, only the resulting
 guest token - and Superset itself only honors that token for the specific
 dashboard id it was scoped to.
 
-The six dashboard UUIDs below are fixed identifiers this repo controls -
-they're referenced identically in `superset/dashboards/*.yaml` (the
-declarative dashboard definitions meant to be imported into a running
-Superset instance) so the frontend, this client, and the YAML all agree on
-which dashboard is which without a live lookup.
+That "id" is NOT the dashboard's own uuid (the one in
+`superset/dashboards/dashboards/*.yaml`). Superset generates a *separate*
+random uuid the first time embedding is enabled for a dashboard (via
+`POST /api/v1/dashboard/<slug>/embedded`), stored in its own
+`embedded_dashboards` table, and that's what both the `@superset-ui/embedded-sdk`
+iframe (`GET /embedded/<uuid>`) and the guest token's `resources[].id` need
+to match - confirmed by tracing Superset's own
+`EmbeddedDashboardDAO.find_by_id()` / `SupersetSecurityManager.has_guest_access()`.
+Passing the dashboard's own uuid there 404s the iframe (this repo's original
+bug - see git history).
 
-Caveat: these UUIDs and this whole flow are unverified against a real
-Superset instance in this environment (no live Superset here to import the
-YAML into and click through) - see docs/DEPLOYMENT.md for what to check
-first.
+`_ensure_embedded_uuid` calls that POST endpoint itself rather than assuming
+embedding was already enabled by some other setup step: Superset's own
+`EmbeddedDashboardDAO.upsert()` preserves the existing uuid across repeat
+calls (only generates one the first time), so this is safe to call on every
+cold cache entry and self-heals if embedding was never enabled at all.
 """
 from __future__ import annotations
 
@@ -24,30 +30,50 @@ import httpx
 
 from app.core.config import settings
 
-DASHBOARD_UUIDS: dict[str, str] = {
-    "gdp": "fdbf5d8b-5077-4ba7-8421-3f0be46f14d8",
-    "inflation": "8259bc55-e18d-4198-b68e-27c89029b54e",
-    "weather": "b7cbc5fc-a0cf-4a5f-88f9-749a4ac9478c",
-    "crypto": "778e0eb8-3168-4b4b-99fd-59899b3e7c58",
-    "exchange": "7950e4cc-2853-4334-ab19-aa5e50005f6b",
-    "forecasts": "2366b86b-7c92-441a-b33f-596ae1d7b56e",
-}
+DASHBOARD_SLUGS: frozenset[str] = frozenset(
+    {"gdp", "inflation", "weather", "crypto", "exchange", "forecasts"}
+)
+
+# Keyed by slug. Populated lazily; safe to keep for the life of the process
+# since Superset's upsert never changes an existing embedded uuid.
+_embedded_uuid_cache: dict[str, str] = {}
 
 
 class UnknownDashboardError(Exception):
-    """Raised for a dashboard key not in DASHBOARD_UUIDS."""
+    """Raised for a dashboard key not in DASHBOARD_SLUGS."""
+
+
+def _ensure_embedded_uuid(
+    dashboard: str, http: httpx.Client, auth_headers: dict[str, str], csrf_token: str
+) -> str:
+    if dashboard in _embedded_uuid_cache:
+        return _embedded_uuid_cache[dashboard]
+
+    resp = http.post(
+        f"/api/v1/dashboard/{dashboard}/embedded",
+        headers={**auth_headers, "X-CSRFToken": csrf_token},
+        json={"allowed_domains": settings.cors_allowed_origins_list},
+    )
+    resp.raise_for_status()
+    embedded_uuid = resp.json()["result"]["uuid"]
+    _embedded_uuid_cache[dashboard] = embedded_uuid
+    return embedded_uuid
 
 
 def fetch_guest_token(
     dashboard: str, *, client: httpx.Client | None = None, username: str = "embedded-viewer"
-) -> str:
-    """Runs the three-call Superset flow and returns the guest token.
+) -> tuple[str, str]:
+    """Runs the login -> CSRF -> (ensure embedded) -> guest-token chain.
+
+    Returns `(guest_token, embedded_dashboard_uuid)` - the caller needs both:
+    the token to authenticate the iframe, and the embedded uuid as the SDK's
+    `id` (see `app/routers/superset.py`).
 
     `client` is injectable so tests can pass an `httpx.Client` built on a
     `MockTransport` instead of hitting a real Superset instance.
     """
-    if dashboard not in DASHBOARD_UUIDS:
-        raise UnknownDashboardError(f"Unknown dashboard '{dashboard}'. Choose one of {sorted(DASHBOARD_UUIDS)}")
+    if dashboard not in DASHBOARD_SLUGS:
+        raise UnknownDashboardError(f"Unknown dashboard '{dashboard}'. Choose one of {sorted(DASHBOARD_SLUGS)}")
 
     owns_client = client is None
     http = client or httpx.Client(base_url=settings.superset_base_url, timeout=10.0)
@@ -69,17 +95,19 @@ def fetch_guest_token(
         csrf_resp.raise_for_status()
         csrf_token = csrf_resp.json()["result"]
 
+        embedded_uuid = _ensure_embedded_uuid(dashboard, http, auth_headers, csrf_token)
+
         guest_resp = http.post(
             "/api/v1/security/guest_token/",
             headers={**auth_headers, "X-CSRFToken": csrf_token},
             json={
                 "user": {"username": username, "first_name": "Embedded", "last_name": "Viewer"},
-                "resources": [{"type": "dashboard", "id": DASHBOARD_UUIDS[dashboard]}],
+                "resources": [{"type": "dashboard", "id": embedded_uuid}],
                 "rls": [],
             },
         )
         guest_resp.raise_for_status()
-        return guest_resp.json()["token"]
+        return guest_resp.json()["token"], embedded_uuid
     finally:
         if owns_client:
             http.close()

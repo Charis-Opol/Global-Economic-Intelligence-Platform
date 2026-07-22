@@ -1,11 +1,13 @@
-# uuid below MUST match backend/app/superset_client.py's DASHBOARD_UUIDS["crypto"]
-# and frontend/src/components/superset/dashboard-ids.ts.
+# This is this dashboard's own identity uuid (asset import/export identity)
+# - unrelated to the *embedded*-dashboard uuid Superset generates separately
+# when embedding is enabled (see backend/app/superset_client.py, which looks
+# that one up dynamically by this dashboard's slug, not from this file).
 dashboard_title: Crypto
 description: null
 css: null
 slug: crypto
 uuid: 778e0eb8-3168-4b4b-99fd-59899b3e7c58
-position_json:
+position:
   DASHBOARD_VERSION_KEY: v2
   ROOT_ID:
     type: ROOT
@@ -29,6 +31,7 @@ position_json:
     parents: [ROOT_ID, GRID_ID, ROW-1]
     meta:
       uuid: e65cb3d8-e55d-438e-9a99-9e5d21ea923c
+      chartId: 1
       width: 12
       height: 50
       sliceName: Crypto Prices by Day

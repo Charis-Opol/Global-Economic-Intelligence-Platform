@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { embedDashboard } from "@superset-ui/embedded-sdk";
 
-import { DASHBOARD_IDS } from "@/components/superset/dashboard-ids";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, api } from "@/lib/api-client";
@@ -10,11 +9,14 @@ const SUPERSET_DOMAIN = import.meta.env.VITE_SUPERSET_DOMAIN;
 
 /**
  * Embeds one Superset dashboard via Superset's official Embedded SDK.
- * `fetchGuestToken` is called by the SDK itself whenever the iframe's guest
- * token needs refreshing (they're short-lived by design - see
- * superset/superset_config.py's GUEST_TOKEN_JWT_EXP_SECONDS), so it always
- * hits the backend for a fresh one rather than reusing whatever was fetched
- * on mount.
+ * The SDK's `id` has to be the dashboard's *embedded* uuid (Superset
+ * generates this separately from the dashboard's own uuid the first time
+ * embedding is enabled), so it's read off the guest-token response rather
+ * than a locally hardcoded id. `fetchGuestToken` is called by the SDK
+ * itself whenever the iframe's guest token needs refreshing (they're
+ * short-lived by design - see superset/superset_config.py's
+ * GUEST_TOKEN_JWT_EXP_SECONDS), so it always hits the backend for a fresh
+ * one rather than reusing whatever was fetched on mount.
  */
 export function SupersetEmbed({ dashboard }: { dashboard: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,13 +31,18 @@ export function SupersetEmbed({ dashboard }: { dashboard: string }) {
     setIsLoading(true);
     setError(null);
 
-    embedDashboard({
-      id: DASHBOARD_IDS[dashboard],
-      supersetDomain: SUPERSET_DOMAIN,
-      mountPoint: container,
-      fetchGuestToken: () => api.supersetGuestToken(dashboard).then((r) => r.token),
-      dashboardUiConfig: { hideTitle: true },
-    })
+    api
+      .supersetGuestToken(dashboard)
+      .then(({ dashboard_id }) => {
+        if (cancelled) return;
+        return embedDashboard({
+          id: dashboard_id,
+          supersetDomain: SUPERSET_DOMAIN,
+          mountPoint: container,
+          fetchGuestToken: () => api.supersetGuestToken(dashboard).then((r) => r.token),
+          dashboardUiConfig: { hideTitle: true },
+        });
+      })
       .catch((err: unknown) => {
         if (!cancelled) {
           setError(err instanceof ApiError ? err.message : "Failed to load this dashboard.");
