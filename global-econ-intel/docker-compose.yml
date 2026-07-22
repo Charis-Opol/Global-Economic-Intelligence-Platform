@@ -58,6 +58,11 @@ x-airflow-common: &airflow-common
     - ./pipelines:/opt/pipelines
     - ./config:/opt/config
     - ./warehouse:/opt/warehouse
+    # Same path spark-master/spark-worker mount this at - the ingestion DAGs'
+    # own run_spark_etl task imports common.py/transforms/*.py from here
+    # directly (in-process SparkSession, not a spark-submit subprocess) to
+    # drive the same Bronze->Silver step previously run by hand.
+    - ./spark/jobs:/opt/spark-jobs:ro
   depends_on:
     postgres:
       condition: service_healthy
@@ -78,6 +83,7 @@ x-superset-common: &superset-common
     DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
     SUPERSET_GUEST_TOKEN_JWT_SECRET: ${SUPERSET_GUEST_TOKEN_JWT_SECRET}
     SUPERSET_ALLOWED_ORIGIN: ${FRONTEND_ORIGIN}
+    MAPBOX_API_KEY: ${MAPBOX_API_KEY}
   volumes:
     # Read-only: Superset only ever queries the warehouse, never writes it.
     - ./warehouse:/opt/warehouse:ro

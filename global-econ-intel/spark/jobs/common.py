@@ -14,13 +14,20 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
 
-def build_spark_session(app_name: str) -> SparkSession:
+def build_spark_session(app_name: str, master: str | None = None) -> SparkSession:
+    """`master` is only needed for in-process callers (the Airflow ingestion
+    DAGs' own run_spark_etl task) - spark-submit's own `--master` flag
+    already sets `spark.master` before this even runs, so the CLI jobs never
+    need to pass it.
+    """
     builder = SparkSession.builder.appName(app_name).config(
         # Only overwrite the specific partitions a job actually writes,
         # so a rerun for one day never wipes out other days already in Silver.
         "spark.sql.sources.partitionOverwriteMode",
         "dynamic",
     )
+    if master:
+        builder = builder.master(master)
 
     minio_endpoint = os.environ.get("MINIO_ENDPOINT")
     if minio_endpoint:

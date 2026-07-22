@@ -12,3 +12,9 @@ great_expectations==1.19.0
 duckdb==1.5.4
 mlflow==3.14.0
 scikit-learn==1.7.2
+# Pinned to match spark-master/spark-worker's apache/spark:3.5.3 exactly -
+# a submitting client's Spark version needs to match the cluster's, and this
+# is what lets the ingestion DAGs run the Bronze->Silver ETL step themselves
+# (spark-submit against spark://spark-master:7077) instead of that being a
+# separate manual step.
+pyspark==3.5.3

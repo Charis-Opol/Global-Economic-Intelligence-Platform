@@ -18,6 +18,7 @@ the loader usable on its own until then.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 import pandas as pd
@@ -26,10 +27,35 @@ from pipelines.warehouse.loader import LOADERS, WarehouseLoader
 from pipelines.warehouse.schema import connect, create_schema
 
 
+def read_silver(path: str) -> pd.DataFrame:
+    """Reads a Silver Parquet dataset from either a local path or MinIO
+    (`s3://` / `s3a://`).
+
+    Plain `pd.read_parquet("s3://...")` fails against MinIO with
+    ACCESS_DENIED - pyarrow's S3 support defaults to real AWS S3 and needs an
+    explicit endpoint override to talk to a non-AWS S3-compatible store, so
+    this builds that filesystem by hand from the same env vars the rest of
+    the stack already uses for MinIO (`MLFLOW_S3_ENDPOINT_URL`, falling back
+    to `MINIO_ENDPOINT`).
+    """
+    if not path.startswith(("s3://", "s3a://")):
+        return pd.read_parquet(path)
+
+    import pyarrow.fs as pafs
+
+    endpoint = os.environ.get("MLFLOW_S3_ENDPOINT_URL") or os.environ.get("MINIO_ENDPOINT", "")
+    scheme, _, host = endpoint.partition("://")
+    fs = pafs.S3FileSystem(endpoint_override=host or endpoint, scheme=scheme or "http")
+    _, _, key = path.partition("://")
+    return pd.read_parquet(key, filesystem=fs)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=True, choices=sorted(LOADERS))
-    parser.add_argument("--path", required=True, help="Path to the Silver Parquet dataset")
+    parser.add_argument(
+        "--path", required=True, help="Path to the Silver Parquet dataset (local or s3a://...)"
+    )
     parser.add_argument(
         "--duckdb-path",
         default=None,
@@ -42,7 +68,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    df = pd.read_parquet(args.path)
+    df = read_silver(args.path)
 
     if args.validate:
         # Imported lazily so the loader has no hard dependency on Great
