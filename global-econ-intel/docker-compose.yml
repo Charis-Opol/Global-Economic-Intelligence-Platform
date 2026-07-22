@@ -242,7 +242,7 @@ services:
     entrypoint: /bin/sh
     command:
       - -c
-      - "superset db upgrade && superset fab create-admin --username ${SUPERSET_ADMIN_USER} --password ${SUPERSET_ADMIN_PASSWORD} --firstname Admin --lastname User --email admin@example.com || true; superset init"
+      - "superset db upgrade && superset fab create-admin --username ${SUPERSET_ADMIN_USER} --password ${SUPERSET_ADMIN_PASSWORD} --firstname Admin --lastname User --email admin@example.com || true; superset init && python /app/grant_public_role.py"
 
   superset:
     <<: *superset-common
@@ -262,6 +262,12 @@ services:
       DUCKDB_PATH: /opt/warehouse/warehouse.duckdb
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      # Loading the champion model downloads its artifacts from s3://gold via
+      # boto3 directly in this container (mlflow's S3ArtifactRepository) -
+      # same requirement as the airflow-common env block above.
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
       AIRFLOW_BASE_URL: http://airflow-webserver:8080
       AIRFLOW_ADMIN_USER: ${AIRFLOW_ADMIN_USER}
       AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}

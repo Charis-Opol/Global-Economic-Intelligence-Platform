@@ -28,4 +28,8 @@ RUN pip install --no-cache-dir --target /app/.venv/lib/python3.10/site-packages 
 # superset_config.py from here, no SUPERSET_CONFIG_PATH env var needed.
 COPY superset_config.py /app/pythonpath/superset_config.py
 
+# Run once by superset-init after `superset init` - see docker-compose.yml
+# and this script's own docstring for why it's needed.
+COPY grant_public_role.py /app/grant_public_role.py
+
 USER superset

@@ -1,5 +1,10 @@
 database_name: DuckDB Warehouse
-sqlalchemy_uri: duckdb:////opt/warehouse/warehouse.duckdb
+# access_mode=READ_ONLY is required, not optional: docker-compose.yml mounts
+# ./warehouse at /opt/warehouse:ro, and DuckDB opens a file for read-write
+# (acquiring a write lock) by default regardless of query content - without
+# this, every chart query fails with "IO Error: Cannot open file ...: Read-only
+# file system" even though Superset only ever reads from this connection.
+sqlalchemy_uri: duckdb:////opt/warehouse/warehouse.duckdb?access_mode=READ_ONLY
 cache_timeout: null
 expose_in_sqllab: true
 allow_run_async: false

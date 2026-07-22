@@ -21,9 +21,26 @@ Before relying on it:
 3. Open each dashboard once in the regular Superset UI and confirm its chart
    actually renders against real warehouse data - an import that succeeds
    without error does not guarantee every chart's query is meaningful.
-4. Check the `Public` role (or whatever `GUEST_ROLE_NAME` is set to in
-   `superset_config.py`) has "can read on Dashboard" - guest tokens are
-   scoped to a role, and Superset doesn't grant that automatically.
+4. The `Public` role (or whatever `GUEST_ROLE_NAME` is set to in
+   `superset_config.py`) needs several permissions beyond "can read on
+   Dashboard" for an embedded guest session to actually load - the embedded
+   iframe's own bootstrap code calls several `/api/v1/*` endpoints (roles,
+   charts, explore, ...) before it renders anything, and a 403 on any of
+   them surfaces as an opaque "Something went wrong with embedded
+   authentication" with no indication of which permission is missing.
+   `docker-compose.yml`'s `superset-init` service runs
+   `superset/grant_public_role.py` after `superset init` to grant the full
+   set automatically - see that script for the exact list and how each entry
+   was found. Safe to re-run; only needed manually if you're not going
+   through `superset-init` (e.g. importing assets by hand into an
+   already-running instance).
+
+Also note: `databases/duckdb_warehouse.yaml`'s `sqlalchemy_uri` has
+`?access_mode=READ_ONLY` - required, not optional. `docker-compose.yml`
+mounts `./warehouse` at `/opt/warehouse:ro`, and DuckDB opens a file
+read-write (acquiring a write lock) by default regardless of query content;
+without this every chart query fails with "IO Error: ... Read-only file
+system" even though Superset only ever reads through this connection.
 
 Note: enabling *embedding* itself (`POST /api/v1/dashboard/<slug>/embedded`,
 which is a separate step from the import above and generates its own uuid
