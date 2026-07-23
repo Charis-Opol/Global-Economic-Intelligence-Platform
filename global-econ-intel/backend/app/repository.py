@@ -71,7 +71,10 @@ def list_gdp(
     if year_max is not None:
         clauses.append("year <= ?")
         params.append(year_max)
-    return _paginated(con, "view_gdp", clauses, params, "country_iso3, year", limit, offset)
+    # Most recent year first by default - without an explicit sort, this
+    # otherwise starts at 1960 (ascending country_iso3, year), which reads as
+    # stale data on a page whose whole point is current economic figures.
+    return _paginated(con, "view_gdp", clauses, params, "year DESC, country_iso3", limit, offset)
 
 
 def list_inflation(
@@ -97,7 +100,7 @@ def list_inflation(
     if year_max is not None:
         clauses.append("year <= ?")
         params.append(year_max)
-    return _paginated(con, "view_inflation", clauses, params, "country_iso3, year", limit, offset)
+    return _paginated(con, "view_inflation", clauses, params, "year DESC, country_iso3", limit, offset)
 
 
 def list_exchange_rates(
@@ -124,7 +127,7 @@ def list_exchange_rates(
         clauses.append("date <= ?")
         params.append(date_to)
     return _paginated(
-        con, "view_exchange_rate", clauses, params, "date, base_code, currency", limit, offset
+        con, "view_exchange_rate", clauses, params, "date DESC, base_code, currency", limit, offset
     )
 
 
@@ -151,7 +154,7 @@ def list_weather(
     if date_to:
         clauses.append("date <= ?")
         params.append(date_to)
-    return _paginated(con, "view_weather", clauses, params, "date, latitude, longitude", limit, offset)
+    return _paginated(con, "view_weather", clauses, params, "date DESC, latitude, longitude", limit, offset)
 
 
 def list_crypto(
@@ -173,7 +176,7 @@ def list_crypto(
     if date_to:
         clauses.append("date <= ?")
         params.append(date_to)
-    return _paginated(con, "view_crypto", clauses, params, "date, coin_id", limit, offset)
+    return _paginated(con, "view_crypto", clauses, params, "date DESC, coin_id", limit, offset)
 
 
 def latest_gdp_row(con: duckdb.DuckDBPyConnection, country: str) -> dict[str, Any] | None:

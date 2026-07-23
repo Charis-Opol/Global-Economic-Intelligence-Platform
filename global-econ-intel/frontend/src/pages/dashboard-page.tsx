@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Bitcoin, Globe2, Repeat, Sparkles } from "lucide-react";
 
 import { StatCard } from "@/components/dashboard/stat-card";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api-client";
 
 export function DashboardPage() {
@@ -50,20 +49,6 @@ export function DashboardPage() {
           hint={`${models.data?.length ?? 0} registered`}
         />
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Getting around</CardTitle>
-          <CardDescription>
-            Use the sidebar to browse GDP, inflation, exchange rate, weather, crypto, and news data, run
-            forecasts, embed Superset dashboards, or check pipeline health.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Every data view below reads directly from the warehouse via the FastAPI backend built in Day 2 -
-          filters and pagination are backed by real query parameters, not client-side slicing.
-        </CardContent>
-      </Card>
     </div>
   );
 }

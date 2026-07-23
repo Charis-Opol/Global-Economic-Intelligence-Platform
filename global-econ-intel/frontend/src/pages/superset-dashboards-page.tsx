@@ -1,7 +1,4 @@
-import { Info } from "lucide-react";
-
 import { SupersetEmbed } from "@/components/superset/superset-embed";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -17,17 +14,6 @@ const DASHBOARDS = [
 export function SupersetDashboardsPage() {
   return (
     <div className="space-y-4">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>Import the dashboard definitions first</AlertTitle>
-        <AlertDescription>
-          These embeds expect Superset to already have the six dashboards from{" "}
-          <code>superset/dashboards/</code> imported (see that folder's README) and embedding enabled via{" "}
-          <code>superset/superset_config.py</code>. The dashboard YAML was authored without a live Superset
-          instance to validate against, so double-check the import succeeds before relying on it.
-        </AlertDescription>
-      </Alert>
-
       <Card>
         <CardHeader>
           <CardTitle>Dashboards</CardTitle>
