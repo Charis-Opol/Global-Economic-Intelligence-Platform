@@ -15,7 +15,39 @@ filenames (`GDP_Over_Time_Top_10_Economies_6.yaml` etc.) to the clean ones
 you see below - filenames are cosmetic, Superset resolves everything by the
 `uuid:` field. Round-tripped through a real re-import
 (`POST /api/v1/assets/import/`) to confirm the renamed files are still valid
-before committing. Still worth doing once after cloning:
+before committing.
+
+**That data-layer verification isn't the same as verifying it renders.**
+Two real bugs got through the API-level checks above and only showed up as
+actual errors in a browser:
+
+- `world_map` charts (originally used for a GDP/Inflation choropleth) 403'd
+  with "Access is Denied" when embedded, even though the exact same query
+  succeeded every time it was tested via `/api/v1/chart/data` with a guest
+  token. The reason: `world_map` is one of the few viz types Superset never
+  migrated off its legacy `viz.py` pipeline, so the dashboard fetches its
+  data through the old session-cookie-based `/superset/explore_json/` MVC
+  endpoint instead of the modern REST API - and that endpoint's
+  `@has_access_api` check doesn't recognize embedded `GuestUser` sessions at
+  all, no matter what's granted to the `Public` role. No config fixes this;
+  it's a hard incompatibility between that specific viz type and embedding.
+  Both charts were deleted rather than left broken - see "Layout" below for
+  what replaced them (nothing - GDP/Inflation just don't get a choropleth).
+- A `bubble_v2` chart with both `entity` and `series` set to the same column
+  (`date`) failed in the browser with "Duplicate column/metric labels:
+  'date'" - both controls map to the query's `columns` list with no default
+  label override, so the same column name appeared twice. `/api/v1/chart/data`
+  testing didn't catch it because that failure mode is specific to the
+  frontend's `buildQuery`, which only runs client-side. Fixed by dropping
+  `series` (optional; there's no second dimension in this single-station
+  dataset to use it for anyway).
+
+Bottom line: proving a chart's SQL/data is correct is necessary but not
+sufficient. If you add another chart here, open it in an actual embedded
+dashboard (or the regular Superset UI) before considering it done - don't
+stop at a green `/api/v1/chart/data` response.
+
+Still worth doing once after cloning:
 
 1. Bring up the stack (`docker compose up -d --build superset-init superset`)
    and confirm Superset itself boots clean.
@@ -75,12 +107,7 @@ multiple chart types, one per row, in this order:
 - `*_line.yaml` - a trend over time (or, for GDP/Inflation, over year - see
   below)
 - `*_bar.yaml` - a categorical comparison
-- `*_map.yaml` (GDP, Inflation only) - a `world_map` choropleth by
-  `country_iso3`. Weather and Exchange don't have a real country dimension
-  (weather is a single lat/long station, exchange rates are per-currency, and
-  a currency isn't a country - EUR alone spans 20) so no choropleth was
-  forced onto either.
-- `weather_scatter.yaml` (Weather only) - a plain `bubble` chart plotting
+- `weather_scatter.yaml` (Weather only) - a `bubble_v2` chart plotting
   longitude against latitude, sized by temperature. Not a real basemap: the
   deck.gl map chart types Superset ships need a Mapbox access token, and
   Mapbox now requires billing info on file even for its free tier, which
@@ -89,7 +116,17 @@ multiple chart types, one per row, in this order:
   Mapbox token becomes available later, swap this chart's `viz_type` from
   `bubble_v2` to `deck_scatter` and set `MAPBOX_API_KEY` in `.env`.
 
-GDP and Inflation's `line`/`bar`/`map` charts all exclude World Bank's
+No choropleth for any dashboard. GDP/Inflation originally had a `world_map`
+one, since both have `country_iso3` - see the "isn't the same as verifying it
+renders" note above for why that had to be deleted rather than fixed: it's a
+hard incompatibility between `world_map` specifically and embedded guest
+sessions, not something a different query or a different filter works around.
+Weather and Exchange never got one to begin with - weather is a single
+lat/long station, exchange rates are per-currency, and a currency isn't a
+country (EUR alone spans 20), so neither has a real country dimension to
+choropleth by.
+
+GDP and Inflation's `line`/`bar` charts both exclude World Bank's
 regional/income-group aggregate rows (`"World"`, `"OECD members"`,
 `"Sub-Saharan Africa"`, ...) via a `NOT LIKE`/`NOT IN` SQL adhoc filter -
 the raw `view_gdp`/`view_inflation` datasets mix real countries and these

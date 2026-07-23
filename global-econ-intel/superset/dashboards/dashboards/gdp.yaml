@@ -20,7 +20,6 @@ position:
     - ROW-1
     - ROW-2
     - ROW-3
-    - ROW-4
     parents:
     - ROOT_ID
   ROW-1:
@@ -90,30 +89,6 @@ position:
     id: ROW-3
     children:
     - CHART-3
-    parents:
-    - ROOT_ID
-    - GRID_ID
-    meta:
-      background: BACKGROUND_TRANSPARENT
-  CHART-4:
-    type: CHART
-    id: CHART-4
-    children: []
-    parents:
-    - ROOT_ID
-    - GRID_ID
-    - ROW-4
-    meta:
-      uuid: ba844d76-054d-43ca-a7fe-fe4fd5ea25a7
-      chartId: 8
-      width: 12
-      height: 50
-      sliceName: GDP by Country (World Map, 2023)
-  ROW-4:
-    type: ROW
-    id: ROW-4
-    children:
-    - CHART-4
     parents:
     - ROOT_ID
     - GRID_ID
