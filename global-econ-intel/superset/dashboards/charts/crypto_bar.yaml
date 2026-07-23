@@ -1,0 +1,57 @@
+slice_name: 7-Day Volatility by Coin
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 5__table
+  viz_type: echarts_timeseries_bar
+  metrics:
+  - expressionType: SIMPLE
+    column:
+      column_name: volatility_7d
+      type: DOUBLE
+    aggregate: AVG
+    label: avg_volatility_7d
+  groupby: []
+  adhoc_filters:
+  - expressionType: SIMPLE
+    subject: coin_id
+    operator: IN
+    comparator:
+    - bitcoin
+    - ethereum
+    - solana
+    - ripple
+    - dogecoin
+    - cardano
+    - tron
+    - binancecoin
+    clause: WHERE
+    isExtra: false
+    isNew: false
+  row_limit: 8
+  order_desc: true
+  timeseries_limit_metric:
+    expressionType: SIMPLE
+    column:
+      column_name: volatility_7d
+      type: DOUBLE
+    aggregate: AVG
+    label: avg_volatility_7d
+  color_scheme: supersetColors
+  y_axis_format: SMART_NUMBER
+  annotation_layers: []
+  contributionMode: null
+  zoomable: false
+  markerEnabled: false
+  truncateYAxis: true
+  comparison_type: values
+  x_axis: coin_id
+  stack: null
+  xAxisLabelRotation: 45
+query_context: null
+cache_timeout: null
+uuid: bbfe9a71-b6bc-414e-98ec-ff29c9dc0eb2
+version: 1.0.0
+dataset_uuid: ee2641a3-b6b8-42b6-884e-e058561bf8ee

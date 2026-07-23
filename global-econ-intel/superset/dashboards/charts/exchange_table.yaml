@@ -1,7 +1,10 @@
 slice_name: Exchange Rates by Day
+description: null
+certified_by: null
+certification_details: null
 viz_type: table
 params:
-  datasource: 6d9eb396-70bd-4f4a-8e71-49f7968568a2__table
+  datasource: 4__table
   viz_type: table
   query_mode: raw
   columns:
@@ -14,6 +17,7 @@ params:
   - '["date", true]'
   row_limit: 1000
   server_page_length: 10
+  annotation_layers: []
 query_context: null
 cache_timeout: null
 uuid: 67dd47d5-398f-43c7-9bee-065a3c50b49e

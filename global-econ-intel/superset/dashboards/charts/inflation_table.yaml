@@ -1,7 +1,10 @@
 slice_name: Inflation by Country and Year
+description: null
+certified_by: null
+certification_details: null
 viz_type: table
 params:
-  datasource: 274c27ab-c3d3-488f-9178-0f99075624a3__table
+  datasource: 2__table
   viz_type: table
   query_mode: raw
   columns:
@@ -14,6 +17,7 @@ params:
   - '["year", true]'
   row_limit: 1000
   server_page_length: 10
+  annotation_layers: []
 query_context: null
 cache_timeout: null
 uuid: 58959cbf-3af9-4dde-a806-ec21dddea2f8

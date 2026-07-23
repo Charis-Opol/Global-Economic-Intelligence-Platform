@@ -1,7 +1,10 @@
 slice_name: Weather by Day
+description: null
+certified_by: null
+certification_details: null
 viz_type: table
 params:
-  datasource: fc567463-c55b-4cee-b3c6-b924908bc363__table
+  datasource: 1__table
   viz_type: table
   query_mode: raw
   columns:
@@ -15,6 +18,7 @@ params:
   - '["date", true]'
   row_limit: 1000
   server_page_length: 10
+  annotation_layers: []
 query_context: null
 cache_timeout: null
 uuid: f1ffd56c-7e15-4085-8de6-e0366c1fd4c4

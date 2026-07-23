@@ -1,0 +1,46 @@
+slice_name: Latest Rate by Currency (per USD)
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 4__table
+  viz_type: echarts_timeseries_bar
+  metrics:
+  - avg_rate
+  groupby: []
+  adhoc_filters:
+  - expressionType: SIMPLE
+    subject: currency
+    operator: IN
+    comparator:
+    - EUR
+    - GBP
+    - JPY
+    - CNY
+    - CAD
+    - AUD
+    - CHF
+    - INR
+    clause: WHERE
+    isExtra: false
+    isNew: false
+  row_limit: 8
+  order_desc: true
+  timeseries_limit_metric: avg_rate
+  color_scheme: supersetColors
+  y_axis_format: SMART_NUMBER
+  annotation_layers: []
+  contributionMode: null
+  zoomable: false
+  markerEnabled: false
+  truncateYAxis: true
+  comparison_type: values
+  x_axis: currency
+  stack: null
+  xAxisLabelRotation: 45
+query_context: null
+cache_timeout: null
+uuid: 3b54c0d8-0881-4544-ab1c-e798a801bb5f
+version: 1.0.0
+dataset_uuid: 6d9eb396-70bd-4f4a-8e71-49f7968568a2

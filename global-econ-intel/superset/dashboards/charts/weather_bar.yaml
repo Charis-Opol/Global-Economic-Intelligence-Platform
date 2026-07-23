@@ -1,0 +1,33 @@
+slice_name: Daily Precipitation
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 1__table
+  viz_type: echarts_timeseries_bar
+  granularity_sqla: date
+  time_grain_sqla: P1D
+  time_range: No filter
+  metrics:
+  - expressionType: SIMPLE
+    column:
+      column_name: precipitation_mm
+      type: DOUBLE
+    aggregate: AVG
+    label: Avg Precipitation (mm)
+  groupby: []
+  adhoc_filters: []
+  row_limit: 1000
+  order_desc: true
+  color_scheme: supersetColors
+  show_legend: false
+  rich_tooltip: true
+  x_axis_time_format: smart_date
+  y_axis_format: SMART_NUMBER
+  annotation_layers: []
+query_context: null
+cache_timeout: null
+uuid: e3f40777-2612-408f-bf22-b7c17d25ce85
+version: 1.0.0
+dataset_uuid: fc567463-c55b-4cee-b3c6-b924908bc363

@@ -1,0 +1,44 @@
+slice_name: Exchange Rate Over Time (Major Currencies)
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_line
+params:
+  datasource: 4__table
+  viz_type: echarts_timeseries_line
+  granularity_sqla: date
+  time_grain_sqla: P1D
+  time_range: No filter
+  metrics:
+  - avg_rate
+  groupby:
+  - currency
+  adhoc_filters:
+  - expressionType: SIMPLE
+    subject: currency
+    operator: IN
+    comparator:
+    - EUR
+    - GBP
+    - JPY
+    - CNY
+    - CAD
+    - AUD
+    - CHF
+    - INR
+    clause: WHERE
+    isExtra: false
+    isNew: false
+  row_limit: 10000
+  order_desc: true
+  color_scheme: supersetColors
+  show_legend: true
+  rich_tooltip: true
+  x_axis_time_format: smart_date
+  y_axis_format: SMART_NUMBER
+  annotation_layers: []
+query_context: null
+cache_timeout: null
+uuid: 98797779-0d3f-4433-af92-b6a84546dda5
+version: 1.0.0
+dataset_uuid: 6d9eb396-70bd-4f4a-8e71-49f7968568a2

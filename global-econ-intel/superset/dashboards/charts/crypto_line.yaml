@@ -1,0 +1,44 @@
+slice_name: Price Over Time (Major Coins)
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_line
+params:
+  datasource: 5__table
+  viz_type: echarts_timeseries_line
+  granularity_sqla: date
+  time_grain_sqla: P1D
+  time_range: No filter
+  metrics:
+  - avg_price_usd
+  groupby:
+  - coin_id
+  adhoc_filters:
+  - expressionType: SIMPLE
+    subject: coin_id
+    operator: IN
+    comparator:
+    - bitcoin
+    - ethereum
+    - solana
+    - ripple
+    - dogecoin
+    - cardano
+    - tron
+    - binancecoin
+    clause: WHERE
+    isExtra: false
+    isNew: false
+  row_limit: 10000
+  order_desc: true
+  color_scheme: supersetColors
+  show_legend: true
+  rich_tooltip: true
+  x_axis_time_format: smart_date
+  y_axis_format: SMART_NUMBER
+  annotation_layers: []
+query_context: null
+cache_timeout: null
+uuid: dcf8ae10-bd11-48aa-b614-75ee779df96a
+version: 1.0.0
+dataset_uuid: ee2641a3-b6b8-42b6-884e-e058561bf8ee

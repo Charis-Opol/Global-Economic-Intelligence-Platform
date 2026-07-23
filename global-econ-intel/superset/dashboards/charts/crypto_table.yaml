@@ -1,7 +1,10 @@
 slice_name: Crypto Prices by Day
+description: null
+certified_by: null
+certification_details: null
 viz_type: table
 params:
-  datasource: ee2641a3-b6b8-42b6-884e-e058561bf8ee__table
+  datasource: 5__table
   viz_type: table
   query_mode: raw
   columns:
@@ -14,6 +17,7 @@ params:
   - '["date", true]'
   row_limit: 1000
   server_page_length: 10
+  annotation_layers: []
 query_context: null
 cache_timeout: null
 uuid: e65cb3d8-e55d-438e-9a99-9e5d21ea923c

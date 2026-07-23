@@ -63,11 +63,6 @@ CORS_OPTIONS = {
     "origins": [_FRONTEND_ORIGIN],
 }
 
-# Only used by the Weather dashboard's deck.gl point map for basemap tiles -
-# every other chart type in these dashboards works fine with this unset.
-# Public (pk.*) token from https://account.mapbox.com/access-tokens/.
-MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
-
 TALISMAN_ENABLED = True
 TALISMAN_CONFIG = {
     "force_https": False,

@@ -1,0 +1,54 @@
+slice_name: Highest Inflation Countries (2023)
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 2__table
+  viz_type: echarts_timeseries_bar
+  metrics:
+  - avg_inflation_pct
+  groupby: []
+  adhoc_filters:
+  - expressionType: SIMPLE
+    subject: year
+    operator: ==
+    comparator: '2023'
+    clause: WHERE
+    isExtra: false
+    isNew: false
+  - expressionType: SQL
+    subject: null
+    operator: null
+    comparator: null
+    clause: WHERE
+    sqlExpression: country_name NOT LIKE '%income%' AND country_name NOT LIKE '%IDA%'
+      AND country_name NOT LIKE '%IBRD%' AND country_name NOT LIKE '% & %' AND country_name
+      NOT LIKE '%(%' AND country_name NOT LIKE '%dividend%' AND country_name NOT LIKE
+      '%classification%' AND country_name NOT LIKE 'Africa %' AND country_name NOT
+      IN ('World','OECD members','Arab World','European Union','Euro area','North
+      America','South Asia','Small states','Not classified','Fragile and conflict
+      affected situations','Central Europe and the Baltics','Pacific island small
+      states','Caribbean small states','Other small states','Sub-Saharan Africa','Latin
+      America & Caribbean','East Asia & Pacific','Europe & Central Asia')
+    isExtra: false
+    isNew: false
+  row_limit: 15
+  order_desc: true
+  timeseries_limit_metric: avg_inflation_pct
+  color_scheme: supersetColors
+  y_axis_format: SMART_NUMBER
+  annotation_layers: []
+  contributionMode: null
+  zoomable: false
+  markerEnabled: false
+  truncateYAxis: true
+  comparison_type: values
+  x_axis: country_name
+  stack: null
+  xAxisLabelRotation: 45
+query_context: null
+cache_timeout: null
+uuid: 6cc921c7-eb17-4a0f-9619-c9892bcf041a
+version: 1.0.0
+dataset_uuid: 274c27ab-c3d3-488f-9178-0f99075624a3

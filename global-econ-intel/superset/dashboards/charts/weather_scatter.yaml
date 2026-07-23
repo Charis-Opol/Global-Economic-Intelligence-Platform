@@ -1,0 +1,44 @@
+slice_name: Station Location (Temp by Lon/Lat)
+description: null
+certified_by: null
+certification_details: null
+viz_type: bubble_v2
+params:
+  datasource: 1__table
+  viz_type: bubble_v2
+  series: date
+  entity: date
+  x:
+    expressionType: SIMPLE
+    column:
+      column_name: longitude
+      type: DOUBLE
+    aggregate: AVG
+    label: avg_longitude
+  y:
+    expressionType: SIMPLE
+    column:
+      column_name: latitude
+      type: DOUBLE
+    aggregate: AVG
+    label: avg_latitude
+  size:
+    expressionType: SIMPLE
+    column:
+      column_name: temp_max_c
+      type: DOUBLE
+    aggregate: AVG
+    label: avg_temp_max_c
+  adhoc_filters: []
+  row_limit: 100
+  color_scheme: supersetColors
+  x_axis_label: Longitude
+  y_axis_label: Latitude
+  annotation_layers: []
+  x_axis_title_margin: 30
+  truncateYAxis: true
+query_context: null
+cache_timeout: null
+uuid: 30c42ec5-ce0f-471c-91a1-f65fcaa042cb
+version: 1.0.0
+dataset_uuid: fc567463-c55b-4cee-b3c6-b924908bc363

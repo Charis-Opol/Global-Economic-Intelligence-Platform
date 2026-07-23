@@ -1,0 +1,46 @@
+slice_name: Inflation Over Time (Top 10 by 2023 Rate)
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_line
+params:
+  datasource: 2__table
+  viz_type: echarts_timeseries_line
+  x_axis: year
+  x_axis_sort_asc: true
+  metrics:
+  - avg_inflation_pct
+  groupby:
+  - country_name
+  adhoc_filters:
+  - expressionType: SQL
+    subject: null
+    operator: null
+    comparator: null
+    clause: WHERE
+    sqlExpression: country_name NOT LIKE '%income%' AND country_name NOT LIKE '%IDA%'
+      AND country_name NOT LIKE '%IBRD%' AND country_name NOT LIKE '% & %' AND country_name
+      NOT LIKE '%(%' AND country_name NOT LIKE '%dividend%' AND country_name NOT LIKE
+      '%classification%' AND country_name NOT LIKE 'Africa %' AND country_name NOT
+      IN ('World','OECD members','Arab World','European Union','Euro area','North
+      America','South Asia','Small states','Not classified','Fragile and conflict
+      affected situations','Central Europe and the Baltics','Pacific island small
+      states','Caribbean small states','Other small states','Sub-Saharan Africa','Latin
+      America & Caribbean','East Asia & Pacific','Europe & Central Asia')
+    isExtra: false
+    isNew: false
+  row_limit: 10000
+  series_limit: 10
+  series_limit_metric: avg_inflation_pct
+  order_desc: true
+  color_scheme: supersetColors
+  show_legend: true
+  rich_tooltip: true
+  x_axis_time_format: smart_date
+  y_axis_format: SMART_NUMBER
+  annotation_layers: []
+query_context: null
+cache_timeout: null
+uuid: d7938839-01b0-41c5-b6e1-133eb6107224
+version: 1.0.0
+dataset_uuid: 274c27ab-c3d3-488f-9178-0f99075624a3
