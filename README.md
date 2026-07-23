@@ -11,7 +11,7 @@ GDP/inflation, live exchange rates, current crypto prices, weather
 observations, and news headlines — orchestrated end-to-end by Airflow and
 Spark, not sample/seed data.
 
-![Architecture](docs/Architecture.png)
+![Architecture](global-econ-intel/docs/Architecture.png)
 
 ## What it does
 
