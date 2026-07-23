@@ -17,6 +17,7 @@ FORECAST_SPECS: dict[str, ForecastSpec] = {
         target_col="gdp_usd",
         lag_col="lag1_gdp_usd",
         rolling_col="gdp_3yr_avg_usd",
+        log_scale=True,
     ),
     "inflation": ForecastSpec(
         domain="inflation",
@@ -33,6 +34,7 @@ FORECAST_SPECS: dict[str, ForecastSpec] = {
         target_col="rate",
         lag_col="lag1_rate",
         rolling_col="rate_7d_avg",
+        log_scale=True,
     ),
     "crypto": ForecastSpec(
         domain="crypto",
@@ -41,5 +43,6 @@ FORECAST_SPECS: dict[str, ForecastSpec] = {
         target_col="price_usd",
         lag_col="lag1_price_usd",
         rolling_col="price_7d_avg_usd",
+        log_scale=True,
     ),
 }

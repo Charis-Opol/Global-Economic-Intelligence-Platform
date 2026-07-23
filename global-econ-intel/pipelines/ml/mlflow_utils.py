@@ -70,7 +70,17 @@ def log_run(
     with mlflow.start_run() as run:
         mlflow.log_params(params)
         mlflow.log_metrics(metrics)
-        mlflow.sklearn.log_model(sklearn_model, name="model")
+        # mlflow.sklearn.log_model()'s default serialization_format ("skops")
+        # runs a security audit on load that rejects raw numpy ufunc
+        # references (np.log1p/np.expm1, used by the log-scale forecast
+        # models' TransformedTargetRegressor) as "untrusted types" - these
+        # are our own trusted internal models, not third-party artifacts, so
+        # cloudpickle (which has no such allowlist to fight) is the right
+        # tool here rather than trying to get specific numpy internals onto
+        # skops' trust list.
+        mlflow.sklearn.log_model(
+            sklearn_model, name="model", serialization_format="cloudpickle"
+        )
         return LoggedRun(
             run_id=run.info.run_id,
             model_uri=f"runs:/{run.info.run_id}/model",

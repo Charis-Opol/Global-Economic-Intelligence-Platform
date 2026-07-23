@@ -94,6 +94,7 @@ services:
   # ---------- Metadata store (shared: airflow, mlflow, superset) ----------
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -111,6 +112,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -121,6 +123,7 @@ services:
   # ---------- Object storage (Bronze / Silver / Gold) ----------
   minio:
     image: minio/minio:latest
+    restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
@@ -157,6 +160,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
+    restart: unless-stopped
     command: webserver
     ports:
       - "8080:8080"
@@ -164,8 +168,14 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  # A dead scheduler is the single most damaging failure mode here: DAG runs
+  # already dispatched to the worker can still finish, but nothing new ever
+  # gets scheduled and everything just looks permanently "stuck" - this
+  # actually happened (a transient DNS blip to postgres crashed it outright,
+  # and with no restart policy it silently stayed dead for hours).
   airflow-scheduler:
     <<: *airflow-common
+    restart: unless-stopped
     command: scheduler
     depends_on:
       airflow-init:
@@ -173,6 +183,7 @@ services:
 
   airflow-worker:
     <<: *airflow-common
+    restart: unless-stopped
     command: celery worker
     depends_on:
       airflow-init:
@@ -189,6 +200,7 @@ services:
   spark-master:
     build:
       context: ./spark
+    restart: unless-stopped
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master", "--host", "0.0.0.0", "--port", "7077", "--webui-port", "8080"]
     environment:
       # Read by common.py's build_spark_session() (S3A config) when
@@ -207,6 +219,7 @@ services:
   spark-worker:
     build:
       context: ./spark
+    restart: unless-stopped
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     environment:
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
@@ -222,6 +235,7 @@ services:
   mlflow:
     build:
       context: ./mlflow
+    restart: unless-stopped
     environment:
       MLFLOW_BACKEND_STORE_URI: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/mlflow
       MLFLOW_ARTIFACT_ROOT: s3://gold
@@ -251,6 +265,7 @@ services:
 
   superset:
     <<: *superset-common
+    restart: unless-stopped
     ports:
       - "8088:8088"
     depends_on:
@@ -263,6 +278,7 @@ services:
   backend:
     build:
       context: ./backend
+    restart: unless-stopped
     environment:
       DUCKDB_PATH: /opt/warehouse/warehouse.duckdb
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
@@ -297,6 +313,7 @@ services:
     build:
       context: ./frontend
       target: dev
+    restart: unless-stopped
     environment:
       VITE_API_BASE_URL: http://localhost:8000
       VITE_SUPERSET_DOMAIN: http://localhost:8088
